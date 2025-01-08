@@ -130,7 +130,7 @@ def list_app(type, appid):
                 ("attemptId", attemptId),
                 ("host", host),
                 ("startTime", cm.utc_ms_to_time(utc_ms)),
-                ("logs", logs),
+                ("logs", 'http:{}'.format(logs.replace('http:',''))),
             ])
             dataset.append(tmp)
 
@@ -218,7 +218,6 @@ def list_yarn_containers(attemptId):
 
 def get_attempt_info(type, appId, attemptId,driverLog):
     logset = set([driverLog])
-
     atts = []
 
     if version == 0:
@@ -390,11 +389,11 @@ def process_command(command, back):
     elif level == 2:
         aid = getParam(ret, command)
         attemptId = aid['attemptId']
-        dirverLog = aid['logs']
+        driverLog = aid['logs']
         pcmd = preCmd[level - 1]
         type = pcmd['type']
         appId = pcmd['applicationId']
-        ret = get_attempt_info(type, appId, attemptId,dirverLog)
+        ret = get_attempt_info(type, appId, attemptId,driverLog)
         context = ">> 请输入日志id: "
         preCmd.insert(level, {'cmd': command, 'ret': ret})
         level += 1

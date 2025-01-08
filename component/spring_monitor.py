@@ -154,7 +154,7 @@ class SpringMonitor(object):
                         wx.send(change(project, service, name, '状态变化:{} -> {}'.format(last_state, state)))
                         print '{} -> {}'.format(last_state, state)
                 elif state == 'UP' and last_state != 'UP':
-                    print ("{} 恢复 {} -> {}".format(app, last_state, state))
+                    print ("{} 恢复 {} -> {}".format(name, last_state, state))
                     wx.send(
                         recover(project, service, name, info['detectTime'], '状态恢复,{} -> {}'.format(
                             last_state, state)))

@@ -8,6 +8,81 @@ from component.wx_client import WxClient
 from config.config import Config
 
 service = 'Yarn应用检测'
+def err(project, service, app, alarmTime, content):
+    markdown = """
+<font color = warning >{project}告警 [告警]</font>
+><font color = info >服务:</font>  {service} 
+><font color = info >应用:</font>  {app} 
+><font color = info >触发时间:</font>  {alarmtime} 
+><font color = info >报警时间:</font>  {timestamp} 
+><font color = info >报警内容:</font>  {content} 
+"""
+
+    return markdown.format(
+        project=project,
+        service=service,
+        app=app,
+        content=content,
+        alarmtime=cm.utc_ms_to_time(alarmTime * 1000),
+        timestamp=cm.get_time()
+    )
+
+
+def change(project, service, app, content):
+    markdown = """
+<font color = warning >{project}告警 [告警]</font>
+><font color = info >服务:</font>  {service} 
+><font color = info >应用:</font>  {app} 
+><font color = info >报警时间:</font>  {timestamp} 
+><font color = info >报警内容:</font>  {content} 
+"""
+
+    return markdown.format(
+        project=project,
+        service=service,
+        app=app,
+        content=content,
+        timestamp=cm.get_time()
+    )
+
+
+def con(project, service, app, alarmTime, content):
+    markdown = """
+<font color = warning >{project}告警 [告警]</font>
+><font color = info >服务:</font>  {service} 
+><font color = info >应用:</font>  {app} 
+><font color = info >触发时间:</font>  {alarmtime} 
+><font color = info >报警时间:</font>  {timestamp} 
+><font color = info >报警内容:</font>  {content} 
+"""
+
+    return markdown.format(
+        project=project,
+        service=service,
+        app=app,
+        content=content,
+        alarmtime=cm.utc_ms_to_time(alarmTime * 1000),
+        timestamp=cm.get_time()
+    )
+
+
+def recover(project, service, app, alarmtime, content):
+    markdown = """
+<font color = warning >{project}告警 </font><font color = info >[恢复]</font>
+><font color = info >服务:</font>  {service} 
+><font color = info >应用:</font>  {app} 
+><font color = info >异常时间:</font>  {alarmtime} 
+><font color = info >恢复时间:</font>  {timestamp} 
+><font color = info >报警状态:</font>  {content} 
+"""
+    return markdown.format(
+        project=project,
+        service=service,
+        app=app,
+        content=content,
+        alarmtime=cm.utc_ms_to_time(alarmtime * 1000),
+        timestamp=cm.get_time()
+    )
 
 
 class YarnAppMonitor:
@@ -20,9 +95,9 @@ class YarnAppMonitor:
         self.yarn_url = self.config.yarn_url
 
     def monitor(self):
-        self.get_app_list()
+        self.check_state()
 
-    def get_app_list(self):
+    def check_state(self):
         stateMap = self.stataMap
         nameset = self.config.get_yarn_app_name_set()
         config = self.config
@@ -34,8 +109,7 @@ class YarnAppMonitor:
         url = "{}/ws/v1/cluster/apps?state=SUBMITTED, ACCEPTED, RUNNING".format(self.yarn_url)
 
         cur_time = time.time()
-        if not stateMap.has_key('app1'):
-            stateMap['app1'] = {'state': 'ACCEPTED'}
+
         try:
             response = requests.get(url)
             if response.status_code == 200:
@@ -121,78 +195,30 @@ class YarnAppMonitor:
         stateMap[name] = info
 
 
-def err(project, service, app, alarmTime, content):
-    markdown = """
-<font color = warning >{project}告警 [告警]</font>
-><font color = info >服务:</font>  {service} 
-><font color = info >应用:</font>  {app} 
-><font color = info >触发时间:</font>  {alarmtime} 
-><font color = info >报警时间:</font>  {timestamp} 
-><font color = info >报警内容:</font>  {content} 
-"""
 
-    return markdown.format(
-        project=project,
-        service=service,
-        app=app,
-        content=content,
-        alarmtime=cm.utc_ms_to_time(alarmTime * 1000),
-        timestamp=cm.get_time()
-    )
+    def list(self):
+        stateMap = self.stataMap
+        nameset = self.config.get_yarn_app_name_set()
+        config = self.config
+        project = config.get_project()
+        warning_interval = config.get_warning_interval()
+        wx = self.wx
+        """获取所有应用程序的详细信息"""
+        # response = requests.get("{}/ws/v1/cluster/apps".format(yarn_url))
+        url = "{}/ws/v1/cluster/apps?state=SUBMITTED, ACCEPTED, RUNNING".format(self.yarn_url)
+
+        cur_time = time.time()
 
 
-def change(project, service, app, content):
-    markdown = """
-<font color = warning >{project}告警 [告警]</font>
-><font color = info >服务:</font>  {service} 
-><font color = info >应用:</font>  {app} 
-><font color = info >报警时间:</font>  {timestamp} 
-><font color = info >报警内容:</font>  {content} 
-"""
+        response = requests.get(url)
+        if response.status_code == 200:
+            names = set()
+            apps_data = response.json()
+            if apps_data['apps'] is None:
+                return
+            applications = apps_data['apps']['app']
+            for app in applications:
+                name = app['name'].encode('utf-8')
+                names.add(name)
 
-    return markdown.format(
-        project=project,
-        service=service,
-        app=app,
-        content=content,
-        timestamp=cm.get_time()
-    )
-
-
-def con(project, service, app, alarmTime, content):
-    markdown = """
-<font color = warning >{project}告警 [告警]</font>
-><font color = info >服务:</font>  {service} 
-><font color = info >应用:</font>  {app} 
-><font color = info >触发时间:</font>  {alarmtime} 
-><font color = info >报警时间:</font>  {timestamp} 
-><font color = info >报警内容:</font>  {content} 
-"""
-
-    return markdown.format(
-        project=project,
-        service=service,
-        app=app,
-        content=content,
-        alarmtime=cm.utc_ms_to_time(alarmTime * 1000),
-        timestamp=cm.get_time()
-    )
-
-
-def recover(project, service, app, alarmtime, content):
-    markdown = """
-<font color = warning >{project}告警 </font><font color = info >[恢复]</font>
-><font color = info >服务:</font>  {service} 
-><font color = info >应用:</font>  {app} 
-><font color = info >异常时间:</font>  {alarmtime} 
-><font color = info >恢复时间:</font>  {timestamp} 
-><font color = info >报警状态:</font>  {content} 
-"""
-    return markdown.format(
-        project=project,
-        service=service,
-        app=app,
-        content=content,
-        alarmtime=cm.utc_ms_to_time(alarmtime * 1000),
-        timestamp=cm.get_time()
-    )
+            print ','.join(names)

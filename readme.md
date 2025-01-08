@@ -2,6 +2,8 @@
 sudo yum install python-pip
 pip install --upgrade pip
 
+pip install --trusted-host pypi.python.org --upgrade pip==20.3.4
+
 
 pip install requests==2.6.0
 pip install configparser==4.0.2
