@@ -237,5 +237,6 @@ class SpringMonitor(object):
             return
 
         apps = self.get_apps(response.text)
+        print ','.join(apps)
         for app in apps:
             print app
