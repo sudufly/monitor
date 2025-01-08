@@ -6,8 +6,8 @@ After=network.target
 [Service]
 Type=simple
 #ExecStart=/data/catII/yarn/bin/startMonitor.sh
-ExecStart=/data/catII/yarn/monitor.py
-WorkingDirectory=/data/catII/yarn/
+#ExecStart=/home/xubo/tools/monitor.py
+#WorkingDirectory=/home/xubo/tools/
 #User=nobody
 #Group=nogroup
 

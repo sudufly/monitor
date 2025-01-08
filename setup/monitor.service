@@ -1,0 +1,17 @@
+# /etc/systemd/system/my_service.service
+[Unit]
+Description= Monitor Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/xubo/tools/tool/
+ExecStart=/home/xubo/tools/tool/monitor.py
+#ExecStart=/data/catII/yarn/bin/startMonitor.sh
+#ExecStart=/home/xubo/tools/monitor.py
+#WorkingDirectory=/home/xubo/tools/
+#User=nobody
+#Group=nogroup
+
+[Install]
+WantedBy=multi-user.target
