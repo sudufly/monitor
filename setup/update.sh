@@ -5,6 +5,7 @@ cd ..
 path=$PWD
 echo ---------$path----------------
 target=setup/package
+mkdir -p $target
 rm -rf $target/*
 wget  -O $target/monitor.zip https://codeload.github.com/sudufly/monitor/zip/refs/heads/main
 
