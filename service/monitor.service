@@ -1,0 +1,15 @@
+# /etc/systemd/system/my_service.service
+[Unit]
+Description= Monitor Service
+After=network.target
+
+[Service]
+Type=simple
+#ExecStart=/data/catII/yarn/bin/startMonitor.sh
+ExecStart=/data/catII/yarn/monitor.py
+WorkingDirectory=/data/catII/yarn/
+#User=nobody
+#Group=nogroup
+
+[Install]
+WantedBy=multi-user.target
