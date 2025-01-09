@@ -197,17 +197,12 @@ class YarnAppMonitor:
 
 
     def list(self):
-        stateMap = self.stataMap
-        nameset = self.config.get_yarn_app_name_set()
-        config = self.config
-        project = config.get_project()
-        warning_interval = config.get_warning_interval()
-        wx = self.wx
+
         """获取所有应用程序的详细信息"""
         # response = requests.get("{}/ws/v1/cluster/apps".format(yarn_url))
         url = "{}/ws/v1/cluster/apps?state=SUBMITTED, ACCEPTED, RUNNING".format(self.yarn_url)
 
-        cur_time = time.time()
+
 
 
         response = requests.get(url)
