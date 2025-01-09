@@ -49,7 +49,10 @@ class KafkaTool(object):
             # print group_info
             arr = []
             idx = 0
-            list = sorted(group_info.keys(), key=lambda x: (x.topic, x.partition))  # 按名称升序，数量降序（负数）
+            l = set()
+            l.update(group_info.keys())
+            l.update(consumer_offset_map.keys())
+            list = sorted(l, key=lambda x: (x.topic, x.partition))  # 按名称升序，数量降序（负数）
 
             for k in list:
                 v = consumer_offset_map.get(k, None)

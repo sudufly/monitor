@@ -6,6 +6,7 @@ echo ---------$path----------------
 base=$path/setup/monitor
 target=$path/setup/monitor.service
 workDir=$path/tool/
+mkdir $workDir
 cp $base $target
 appPath="/Type=simple/a\ExecStart=$workDir""monitor.py"
 sed -i "$appPath" $target

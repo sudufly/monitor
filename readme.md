@@ -1,5 +1,5 @@
 # 安装
-sudo yum install python-pip
+sudo yum install python-pip==20.3.4
 pip install --upgrade pip
 
 pip install --trusted-host pypi.python.org --upgrade pip==20.3.4

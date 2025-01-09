@@ -47,7 +47,7 @@ class Config:
 
         self.eureka_url = monitor.get('springEnable')
         self.eureka_url = monitor.get('eurekaUrl')
-        spring_app_names = monitor.get('springAppNames').encode('utf-8')
+        spring_app_names = monitor.get('springAppNames', '').encode('utf-8')
         self.spring_enable = monitor.getboolean('springEnable')
         if len(spring_app_names) > 0:
             self.spring_app_name_set = set(spring_app_names.split(','))
