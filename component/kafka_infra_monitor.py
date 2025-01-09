@@ -262,7 +262,7 @@ class MonitorKafkaInfra(object):
                     info['alarmTime'] = cur_time
                     self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
                                                    '消费组未消费消息条数>{}'.format(warning_offsets), msg))
-
+                alarmMap[key] = info
             # 遍历要删除的键列表并从字典中删除这些键
             for key in remove_arr:
                 del alarmMap[key]
