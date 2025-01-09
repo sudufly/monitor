@@ -26,6 +26,12 @@ class KafkaTool(object):
     def group_progress(self, cmd):
         # print("cmd:{}".format(cmd))
         idx = -1
+        split = cmd.split(" ")
+        cmd = split[0]
+        tpoic = ''
+        if len(split) == 2:
+            topic = split[1]
+
         if cmd.isdigit():
             idx = int(cmd) - 1
 
@@ -56,7 +62,8 @@ class KafkaTool(object):
 
             for k in list:
                 v = consumer_offset_map.get(k, None)
-
+                if len(topic) > 0 and k.topic != topic:
+                    continue
                 idx += 1
                 range = kafka_offset_map.get(k, 0)
                 cur_offset = v.offset if v is not None else '-'
