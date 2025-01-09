@@ -98,13 +98,13 @@ class SpringMonitor(object):
         eureka_url = self.config.get_eureka_url()
         self.app_set = self.config.get_spring_app_name_set()
 
-    def get_apps(self, xml_content):
+    def get_apps(self, xml_content,filter = True):
         root = ET.fromstring(xml_content)
         app_map = {}
         # 遍历所有 Application 元素
         for app in root.findall('application'):
             app_name = app.find('name').text.encode('utf-8')
-            if app_name not in self.app_set:
+            if filter and app_name not in self.app_set:
                 continue
             # print('\nApplication: {}'.format(app_name))
             l = list()
@@ -221,11 +221,7 @@ class SpringMonitor(object):
         stateMap[name] = info
 
     def list(self):
-        wx = self.wx
-        project = self.config.project
-        stateMap = self.instance_map
-        warning_interval = self.config.get_warning_interval()
-        cur_time = time.time()
+
         eureka_url = '{}/eureka/apps'.format(self.config.get_eureka_url())
 
         response = requests.get(eureka_url)
@@ -236,7 +232,8 @@ class SpringMonitor(object):
             print("Response is not in XML format.")
             return
 
-        apps = self.get_apps(response.text)
+        apps = self.get_apps(response.text,False)
+        # print response.text
         print ','.join(apps)
         for app in apps:
             print app
