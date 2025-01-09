@@ -229,7 +229,6 @@ class MonitorKafkaInfra(object):
                 lag_map[key] = lag
 
                 if lag > warning_offsets:
-                    print("key:{},lag:{}".format(key, lag))
                     info = alarmMap.get(key, {})
                     info['detectTime'] = cur_time
                     alarmMap[key] = info
@@ -245,8 +244,7 @@ class MonitorKafkaInfra(object):
                 alarmTime = info.get("alarmTime", cur_time)
 
                 msg = "消费组: {}, Topic: {}, 分区: {}, 未消费消息条数: {}".format(
-                    gid, topic, partition, lag)
-
+                    key[0], key[1], key[2], lag)
                 # 1min 没有检测到则代表恢复
                 if cur_time - detectTime > 60:
 
@@ -276,10 +274,10 @@ class MonitorKafkaInfra(object):
 def generate_markdown(project, service, alarmTime, content, detail):
     markdown = """
 <font color = warning >{project}告警</font>
-><font color = info >服务:</font>  {service} 
-><font color = info >触发时间:</font>  {alarmtime} 
-><font color = info >报警时间:</font>  {timestamp} 
-><font color = info >报警内容:</font>  {content} 
+><font color = info >服务:</font>  {service}
+><font color = info >触发时间:</font>  {alarmtime}
+><font color = info >报警时间:</font>  {timestamp}
+><font color = info >报警内容:</font>  {content}
 ><font color = info >报警明细:</font> {detail}
 """
 
@@ -296,10 +294,10 @@ def generate_markdown(project, service, alarmTime, content, detail):
 def recover(project, service, alarmtime, content, lag):
     markdown = """
 <font color = warning >{project}告警 </font><font color = info >[恢复]</font>
-><font color = info >服务:</font>  {service} 
-><font color = info >触发时间:</font>  {alarmtime} 
-><font color = info >恢复时间:</font>  {timestamp} 
-><font color = info >报警状态:</font>  {content} 
+><font color = info >服务:</font>  {service}
+><font color = info >触发时间:</font>  {alarmtime}
+><font color = info >恢复时间:</font>  {timestamp}
+><font color = info >报警状态:</font>  {content}
 ><font color = info >当前状态:</font>  {lag}
 """
     return markdown.format(
