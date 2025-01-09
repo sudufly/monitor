@@ -28,7 +28,7 @@ class KafkaTool(object):
         idx = -1
         split = cmd.split(" ")
         cmd = split[0]
-        tpoic = ''
+        topic = ''
         if len(split) == 2:
             topic = split[1]
 
