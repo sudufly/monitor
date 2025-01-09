@@ -7,6 +7,7 @@ from kafka import KafkaAdminClient, TopicPartition, errors
 from kafka.errors import kafka_errors
 from kafka.protocol.offset import OffsetResetStrategy, OffsetRequest, OffsetResponse
 from urllib3.packages.six import iteritems
+
 from common import common as cm
 from config.config import Config
 from wx_client import WxClient
@@ -223,11 +224,13 @@ class MonitorKafkaInfra(object):
                 topic = key[1]
                 partition = key[2]
                 tp = TopicPartition(topic, partition)
-                max_offset = topic_offsets_dict[tp] if topic_offsets_dict.has_key(tp) else offset
+                max_offset = topic_offsets_dict.get(tp, offset)
                 lag = max_offset - offset
                 lag_map[key] = lag
+
                 if lag > warning_offsets:
-                    info = alarmMap[key] if alarmMap.has_key(key) else {}
+                    print("key:{},lag:{}".format(key, lag))
+                    info = alarmMap.get(key, {})
                     info['detectTime'] = cur_time
                     alarmMap[key] = info
 
@@ -237,9 +240,9 @@ class MonitorKafkaInfra(object):
             for key in alarmMap:
                 info = alarmMap[key]
 
-                lag = lag_map[key] if lag_map.has_key(key) else 0
+                lag = lag_map.get(key, 0)
                 detectTime = info['detectTime']
-                alarmTime = info['alarmTime'] if info.has_key("alarmTime") else cur_time
+                alarmTime = info.get("alarmTime", cur_time)
 
                 msg = "消费组: {}, Topic: {}, 分区: {}, 未消费消息条数: {}".format(
                     gid, topic, partition, lag)
@@ -252,9 +255,9 @@ class MonitorKafkaInfra(object):
                     remove_arr.append(key)
 
                 elif info.has_key("alarmTime"):
-                    alarmTime = info['alarmTime']
                     # 每10min 报一次
-                    if cur_time - alarmTime > warning_interval:
+                    if cur_time - alarmTime > warning_interval and lag > warning_offsets:
+                        alarmTime = info['alarmTime']
                         self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
                                                        '消费组未消费消息条数>{}'.format(warning_offsets), msg))
 

@@ -98,7 +98,7 @@ class SpringMonitor(object):
         eureka_url = self.config.get_eureka_url()
         self.app_set = self.config.get_spring_app_name_set()
 
-    def get_apps(self, xml_content,filter = True):
+    def get_apps(self, xml_content, filter=True):
         root = ET.fromstring(xml_content)
         app_map = {}
         # 遍历所有 Application 元素
@@ -146,7 +146,7 @@ class SpringMonitor(object):
 
             for name, ins in apps.items():
                 state = ins[1]
-                info = stateMap[name] if stateMap.has_key(name) else {'state': state, 'detectTime': cur_time}
+                info = stateMap.get(name, {'state': state, 'detectTime': cur_time})
                 last_state = info['state']
                 if state != 'UP' and last_state != 'UP':
                     # 累计时长
@@ -180,7 +180,7 @@ class SpringMonitor(object):
                     info = stateMap[name]
                     state = info['state']
                     if state != 'UP':
-                        alarmTime = info['alarmTime'] if info.has_key('alarmTime') else 0
+                        alarmTime = info.get('alarmTime', 0)
                         if (cur_time - alarmTime > warning_interval):
                             info['alarmTime'] = cur_time
                             print "{}重复报警,{}".format(name, info)
@@ -209,7 +209,7 @@ class SpringMonitor(object):
         warning_interval = config.get_warning_interval()
 
         info = stateMap.get(name, {'state': 'EXIT', 'detectTime': cur_time, 'alarmTime': 0})
-        alarmTime = info['alarmTime'] if info.has_key('alarmTime') else 0
+        alarmTime = info.get('alarmTime', 0)
 
         # 退出10min 报一次
         if (cur_time - alarmTime > warning_interval * 3):
@@ -232,7 +232,7 @@ class SpringMonitor(object):
             print("Response is not in XML format.")
             return
 
-        apps = self.get_apps(response.text,False)
+        apps = self.get_apps(response.text, False)
         # print response.text
         print ','.join(apps)
         # for app in apps:

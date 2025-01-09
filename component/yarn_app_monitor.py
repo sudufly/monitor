@@ -8,6 +8,8 @@ from component.wx_client import WxClient
 from config.config import Config
 
 service = 'Yarn应用检测'
+
+
 def err(project, service, app, alarmTime, content):
     markdown = """
 <font color = warning >{project}告警 [告警]</font>
@@ -124,7 +126,7 @@ class YarnAppMonitor:
 
                     if name in nameset:
                         names.add(name)
-                        info = stateMap[name] if stateMap.has_key(name) else {'state': state, 'detectTime': cur_time}
+                        info = stateMap.get(name, {'state': state, 'detectTime': cur_time})
                         last_state = info['state']
                         if state != 'RUNNING' and last_state != 'RUNNING':
                             # 累计时长
@@ -157,7 +159,7 @@ class YarnAppMonitor:
                         info = stateMap[name]
                         state = info['state']
                         if state != 'RUNNING':
-                            alarmTime = info['alarmTime'] if info.has_key('alarmTime') else 0
+                            alarmTime = info.get('alarmTime', 0)
                             if (cur_time - alarmTime > warning_interval):
                                 info['alarmTime'] = cur_time
                                 print "{}重复报警,{}".format(name, info)
@@ -183,7 +185,7 @@ class YarnAppMonitor:
         warning_interval = config.get_warning_interval()
 
         info = stateMap.get(name, {'state': 'EXIT', 'detectTime': cur_time, 'alarmTime': 0})
-        alarmTime = info['alarmTime'] if info.has_key('alarmTime') else 0
+        alarmTime = info.get('alarmTime', 0)
 
         # 退出10min 报一次
         if (cur_time - alarmTime > warning_interval * 3):
@@ -194,16 +196,11 @@ class YarnAppMonitor:
         info['state'] = 'EXIT'
         stateMap[name] = info
 
-
-
     def list(self):
 
         """获取所有应用程序的详细信息"""
         # response = requests.get("{}/ws/v1/cluster/apps".format(yarn_url))
         url = "{}/ws/v1/cluster/apps?state=SUBMITTED, ACCEPTED, RUNNING".format(self.yarn_url)
-
-
-
 
         response = requests.get(url)
         if response.status_code == 200:
