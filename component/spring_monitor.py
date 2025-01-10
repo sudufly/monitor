@@ -218,6 +218,7 @@ class SpringMonitor(object):
             wx.send(err(config.get_project(), service, name, info['detectTime'],
                         '程序退出,{} -> EXIT'.format(info['state'])))
         info['state'] = 'EXIT'
+        info['detectTime'] = cur_time
         stateMap[name] = info
 
     def list(self):
