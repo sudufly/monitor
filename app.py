@@ -251,6 +251,7 @@ def get_attempt_info(type, appId, attemptId,driverLog):
                 logName = "jobmanager"
 
             logarr.append(logs + "/{}.log/".format(logName))
+            logarr.append(logs + "/{}.out/".format(logName))
             logarr.append(logs + "/{}.err/".format(logName))
 
         for log in logarr:
