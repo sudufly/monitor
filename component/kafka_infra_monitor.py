@@ -236,6 +236,8 @@ class MonitorKafkaInfra(object):
             # print msgMap
             cur_time = time.time()
             remove_arr = []
+            arr_recover = []
+            arr_alarm = []
             for key in alarmMap:
                 info = alarmMap[key]
 
@@ -248,23 +250,35 @@ class MonitorKafkaInfra(object):
                 # 1min 没有检测到则代表恢复
                 if cur_time - detectTime > 60:
 
-                    self.wx.send(recover(self.config.get_project(), self.service, alarmTime,
-                                         '告警恢复', msg))
+                    # self.wx.send(recover(self.config.get_project(), self.service, alarmTime,
+                    #                      '告警恢复', msg))
+                    arr_recover.append(recover(self.config.get_project(), self.service, alarmTime,
+                                               '告警恢复', msg))
                     remove_arr.append(key)
 
                 elif info.has_key("alarmTime"):
                     # 每10min 报一次
                     if cur_time - alarmTime > warning_interval and lag > warning_offsets:
                         alarmTime = info['alarmTime']
-                        self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
-                                                       '消费组未消费消息条数>{}'.format(warning_offsets), msg))
+                        # self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
+                        #                                '消费组未消费消息条数>{}'.format(warning_offsets), msg))
+                        arr_alarm.append(generate_markdown(self.config.get_project(), self.service, alarmTime,
+                                                           '消费组未消费消息条数>{}'.format(warning_offsets), msg))
 
                 else:
                     info['alarmTime'] = cur_time
-                    self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
-                                                   '消费组未消费消息条数>{}'.format(warning_offsets), msg))
+                    # self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
+                    #                                '消费组未消费消息条数>{}'.format(warning_offsets), msg))
+                    arr_alarm.append(generate_markdown(self.config.get_project(), self.service, alarmTime,
+                                                       '消费组未消费消息条数>{}'.format(warning_offsets), msg))
                 alarmMap[key] = info
             # 遍历要删除的键列表并从字典中删除这些键
+            if len(arr_recover) > 0:
+                self.wx.send('\n'.join(arr_recover))
+            if len(arr_alarm) > 0:
+                self.wx.send("\n".join(arr_alarm))
+            # 遍历要删除的键列表并从字典中删除这些键
+
             for key in remove_arr:
                 del alarmMap[key]
         except Exception as e:
