@@ -259,7 +259,7 @@ class MonitorKafkaInfra(object):
                 elif info.has_key("alarmTime"):
                     # 每10min 报一次
                     if cur_time - alarmTime > warning_interval and lag > warning_offsets:
-                        alarmTime = info['alarmTime']
+                        info['alarmTime'] = cur_time
                         # self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
                         #                                '消费组未消费消息条数>{}'.format(warning_offsets), msg))
                         arr_alarm.append(msg)
