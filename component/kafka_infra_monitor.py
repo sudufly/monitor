@@ -203,6 +203,7 @@ class MonitorKafkaInfra(object):
             warning_interval = self.config.get_warning_interval()
             alarmMap = self.alarm_map
             gid_set = self.config.get_black_groupid_set()
+            project = self.config.get_project()
             lag_map = {}
             cur_time = time.time()
 
@@ -252,8 +253,7 @@ class MonitorKafkaInfra(object):
 
                     # self.wx.send(recover(self.config.get_project(), self.service, alarmTime,
                     #                      '告警恢复', msg))
-                    arr_recover.append(recover(self.config.get_project(), self.service, alarmTime,
-                                               '告警恢复', msg))
+                    arr_recover.append(msg)
                     remove_arr.append(key)
 
                 elif info.has_key("alarmTime"):
@@ -262,22 +262,23 @@ class MonitorKafkaInfra(object):
                         alarmTime = info['alarmTime']
                         # self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
                         #                                '消费组未消费消息条数>{}'.format(warning_offsets), msg))
-                        arr_alarm.append(generate_markdown(self.config.get_project(), self.service, alarmTime,
-                                                           '消费组未消费消息条数>{}'.format(warning_offsets), msg))
+                        arr_alarm.append(msg)
 
                 else:
                     info['alarmTime'] = cur_time
                     # self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
                     #                                '消费组未消费消息条数>{}'.format(warning_offsets), msg))
-                    arr_alarm.append(generate_markdown(self.config.get_project(), self.service, alarmTime,
-                                                       '消费组未消费消息条数>{}'.format(warning_offsets), msg))
+                    arr_alarm.append(msg)
                 alarmMap[key] = info
             # 遍历要删除的键列表并从字典中删除这些键
             if len(arr_recover) > 0:
-                self.wx.send('\n'.join(arr_recover))
+                self.wx.send(recover(project, self.service, alarmTime,
+                                     '告警恢复', "\n" + "\n".join(arr_recover)))
             if len(arr_alarm) > 0:
-                self.wx.send("\n".join(arr_alarm))
-            # 遍历要删除的键列表并从字典中删除这些键
+                self.wx.send(generate_markdown(project, self.service, alarmTime,
+                                               '消费组未消费消息条数>{}'.format(warning_offsets),
+                                               "\n" + "\n".join(arr_alarm)))
+                # 遍历要删除的键列表并从字典中删除这些键
 
             for key in remove_arr:
                 del alarmMap[key]
