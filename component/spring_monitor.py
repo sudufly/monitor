@@ -149,26 +149,29 @@ class SpringMonitor(object):
                 info = stateMap.get(name, {'state': state, 'detectTime': cur_time})
                 last_state = info['state']
                 if state != 'UP' and last_state != 'UP':
-                    # 累计时长
+                    # 异常持续  累计时长
                     if state != last_state:
                         wx.send(change(project, service, name, '状态变化:{} -> {}'.format(last_state, state)))
                         print '{} -> {}'.format(last_state, state)
                 elif state == 'UP' and last_state != 'UP':
                     print ("{} 恢复 {} -> {}".format(name, last_state, state))
+                    # 异常恢复
                     wx.send(
-                        recover(project, service, name, info['alarmTime'], '状态恢复,{} -> {}'.format(
+                        recover(project, service, name, info['errTime'], '状态恢复,{} -> {}'.format(
                             last_state, state)))
                     info['state'] = state
                     info['detectTime'] = cur_time
                     info['alarmTime'] = 0
 
                 elif state != 'UP' and last_state == 'UP':
+                    # 首次异常
                     print "异常"
-                    wx.send(err(project, service, name, info['detectTime'],
+                    wx.send(err(project, service, name, cur_time,
                                 '状态异常,{} -> {}'.format(last_state, state)))
 
                     info['state'] = state
                     info['detectTime'] = cur_time
+                    info['errTime'] = cur_time
                     info['alarmTime'] = cur_time
                 elif state == 'UP' and last_state == 'UP':
                     info['state'] = state
@@ -211,14 +214,14 @@ class SpringMonitor(object):
         wx = self.wx
         warning_interval = config.get_warning_interval()
 
-        info = stateMap.get(name, {'state': 'EXIT', 'detectTime': cur_time, 'alarmTime': 0})
+        info = stateMap.get(name, {'state': 'EXIT', 'detectTime': cur_time, 'alarmTime': 0, 'errTime': cur_time})
         alarmTime = info.get('alarmTime', 0)
 
         # 退出10min 报一次
         if (cur_time - alarmTime > warning_interval * 3):
             info['alarmTime'] = cur_time
             print "{}异常退出".format(name)
-            wx.send(err(config.get_project(), service, name, info['detectTime'],
+            wx.send(err(config.get_project(), service, name, info['errTime'],
                         '程序退出,{} -> EXIT'.format(info['state'])))
         info['state'] = 'EXIT'
         info['detectTime'] = cur_time
