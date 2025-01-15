@@ -29,3 +29,4 @@ else
 fi
 
 sed -i 's/\r$//' $path/tool/*.py
+chmod +x $path/tool/*.py
