@@ -2,16 +2,9 @@
 
 # coding:utf-8
 from collections import OrderedDict
-from pprint import pprint
-
-import requests
 
 from common import common as cm
 from component.yarn_tool import YarnTool
-
-
-
-
 
 if __name__ == "__main__":
     yarn = YarnTool()
@@ -71,6 +64,11 @@ if __name__ == "__main__":
             f_task_info = f_operator_map.get(id, {})
 
             name = vertice.get('name').encode('utf-8')
+            metrics = vertice.get('metrics')
+            read_bytes = metrics.get('read-bytes')
+            read_records = metrics.get('read-records')
+            write_records = metrics.get('write-records')
+            write_bytes = metrics.get('write-bytes')
             c_state_size = int(c_task_info.get('state_size', 0))
             c_duration = long(c_task_info.get('end_to_end_duration', 0))
             f_state_size = int(f_task_info.get('state_size', 0))
@@ -79,10 +77,14 @@ if __name__ == "__main__":
             data.append(OrderedDict([
                 ("id", id),
                 ("name", name),
+                ("read records", read_records),
+                ("read size", cm.get_size(read_bytes)),
+                ("write records", write_bytes),
+                ("write size", cm.get_size(write_bytes)),
                 ("C Id", c_task_info['id']),
                 ("C StateSize", cm.get_size(c_state_size)),
                 ("C Duration", cm.get_duration(c_duration)),
-                ("F Id", f_task_info.get('id','-')),
+                ("F Id", f_task_info.get('id', '-')),
                 ("F StateSize", cm.get_size(f_state_size)),
                 ("F Duration", cm.get_duration(f_duration)),
             ]))
