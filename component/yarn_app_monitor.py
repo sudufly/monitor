@@ -136,7 +136,7 @@ class YarnAppMonitor:
                         elif state == 'RUNNING' and last_state != 'RUNNING':
                             print "恢复"
                             wx.send(
-                                recover(project, service, name, info['detectTime'], '状态恢复,{} -> {}'.format(
+                                recover(project, service, name, info['alarmTime'], '状态恢复,{} -> {}'.format(
                                     last_state, state)))
                             info['state'] = state
                             info['detectTime'] = cur_time
@@ -150,7 +150,9 @@ class YarnAppMonitor:
                             info['state'] = state
                             info['detectTime'] = cur_time
                             info['alarmTime'] = cur_time
-
+                        elif state == 'RUNNING':
+                            info['state'] = state
+                            info['detectTime'] = cur_time
                         stateMap[name] = info
 
                 for name in nameset:

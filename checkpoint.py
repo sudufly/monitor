@@ -1,67 +1,87 @@
 # coding:utf-8
-import requests
-
-import json
+from collections import OrderedDict
 from pprint import pprint
 
-# 配置Flink集群的JobManager地址和端口
-FLINK_JM_URL = "http://hbase2-102:18088/proxy/application_1735628121942_0023"  # 替换为实际的JobManager URL
+import requests
 
-def get_job_overview():
-    """获取所有作业的概述"""
-    url = "{}/jobs/overview".format(FLINK_JM_URL)
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print("Failed to fetch job overview, status code: {}".format(response.status_code))
-        return None
+from common import common as cm
+from component.yarn_tool import YarnTool
 
-def get_job_details(job_id):
-    """根据job_id获取特定作业的详细信息"""
-    url = "{}/jobs/{}".format(FLINK_JM_URL, job_id)
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print("Failed to fetch job details for job {}, status code: {}".format(job_id, response.status_code))
-        return None
 
-def get_checkpoint_data(job_id):
-    """根据job_id获取特定作业的checkpoint数据"""
-    url = "{}/jobs/{}/checkpoints".format(FLINK_JM_URL, job_id)
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print("Failed to fetch checkpoint data for job {}, status code: {}".format(job_id, response.status_code))
-        return None
 
-def main():
-    overview = get_job_overview()
-    if not overview or 'jobs' not in overview:
-        print("No jobs found.")
-        return
 
-    for job in overview['jobs']:
-        print job
-        job_id = job['jid']
-        job_status = job['state']
-
-        print("\nJob ID: {}\nStatus: {}".format(job_id, job_status))
-
-        details = get_job_details(job_id)
-        if details:
-            job_name = details['name']
-            print("Name: {}".format(job_name))
-
-            checkpoints = get_checkpoint_data(job_id)
-            if checkpoints and 'latest' in checkpoints:
-                latest_checkpoints = checkpoints['latest']
-                if 'completed' in latest_checkpoints:
-                    completed_checkpoint = latest_checkpoints['completed']
-                    print("Latest Completed Checkpoint:")
-                    pprint(completed_checkpoint)
 
 if __name__ == "__main__":
-    main()
+    yarn = YarnTool()
+    apps = yarn.get_app_list('Apache Flink')
+    for item in apps:
+        # app = 'application_1735628121942_0023'
+        app = item['applicationId']
+        views = yarn.get_job_overview(app)
+        view = views['jobs'][0]
+        jid = view.get('jid').encode('utf-8')
+        name = view.get('name').encode('utf-8')
+        state = view.get('state').encode('utf-8')
+        start_time = view.get('start-time')
+        tasks = view.get('tasks')
+        total = tasks.get('total')
+        running = tasks.get('running')
+        initializing = tasks.get('initializing')
+        failed = tasks.get('failed')
+        data = []
+        data.append(OrderedDict([
+            ("jobId", jid),
+            ("name", name),
+            ("status", state),
+            ("startTime", cm.utc_ms_to_time(start_time)),
+            ("total", total),
+            ("running", running),
+            ("initializing", initializing),
+            ("failed", failed),
+
+        ]))
+        cm.print_dataset('Application View', data)
+        # main()
+        details = yarn.get_job_details(app, jid)
+        data = []
+        vertices = details.get('vertices')
+
+        checkpoint = yarn.get_checkpoint_data(app, jid)
+        latest_ck = checkpoint['latest']
+        complete_ck = latest_ck.get('completed', None)
+        failed_ck = latest_ck.get('failed', None)
+        restored_ck = latest_ck.get('restored', None)
+        c_operator_map = {}  # completed
+        f_operator_map = {}  # failed
+        if complete_ck:
+            ck_id = complete_ck['id']
+            ck_status = complete_ck['status'].encode('utf-8')
+            ck_detail = yarn.get_checkpoint_details(app, jid, ck_id)
+            c_operator_map = ck_detail['tasks']
+        if failed_ck:
+            ck_id = failed_ck['id']
+            ck_status = failed_ck['status'].encode('utf-8')
+            ck_detail = yarn.get_checkpoint_details(app, jid, ck_id)
+            f_operator_map = ck_detail['tasks']
+        for vertice in vertices:
+            id = vertice.get('id').encode('utf-8')
+            c_task_info = c_operator_map.get(id, {})
+            f_task_info = f_operator_map.get(id, {})
+
+            name = vertice.get('name').encode('utf-8')
+            c_state_size = int(c_task_info.get('state_size', 0))
+            c_duration = long(c_task_info.get('end_to_end_duration', 0))
+            f_state_size = int(f_task_info.get('state_size', 0))
+            f_duration = long(f_task_info.get('end_to_end_duration', 0))
+
+            data.append(OrderedDict([
+                ("id", id),
+                ("name", name),
+                ("C Id", c_task_info['id']),
+                ("C StateSize", cm.get_size(c_state_size)),
+                ("C Duration", cm.get_duration(c_duration)),
+                ("F Id", f_task_info.get('id','-')),
+                ("F StateSize", cm.get_size(f_state_size)),
+                ("F Duration", cm.get_duration(f_duration)),
+            ]))
+        cm.print_dataset('Operators Checkpoint', data)

@@ -156,7 +156,7 @@ class SpringMonitor(object):
                 elif state == 'UP' and last_state != 'UP':
                     print ("{} 恢复 {} -> {}".format(name, last_state, state))
                     wx.send(
-                        recover(project, service, name, info['detectTime'], '状态恢复,{} -> {}'.format(
+                        recover(project, service, name, info['alarmTime'], '状态恢复,{} -> {}'.format(
                             last_state, state)))
                     info['state'] = state
                     info['detectTime'] = cur_time
@@ -170,6 +170,9 @@ class SpringMonitor(object):
                     info['state'] = state
                     info['detectTime'] = cur_time
                     info['alarmTime'] = cur_time
+                elif state == 'UP' and last_state == 'UP':
+                    info['state'] = state
+                    info['detectTime'] = cur_time
 
                 stateMap[name] = info
 

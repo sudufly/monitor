@@ -116,3 +116,23 @@ def display_width(text):
 # text = '世界'
 # k = wcwidth.wcswidth(text.decode('utf-8'))
 # print k
+
+
+def get_size(state_size):
+    if state_size > 1024 * 1024:
+        state_size_str = '{} MB'.format(state_size / 1024 / 1024)
+    else:
+        state_size_str = '{} KB'.format(state_size / 1024)
+    return state_size_str
+
+
+def get_duration(duration):
+    if duration < 1000:
+        duration_str = '{} ms'.format(duration)
+    elif duration < 60 * 1000:
+        duration_str = '{} s'.format(duration / 1000)
+    elif duration < 60 * 60 * 1000:
+        duration_str = '{} min'.format(duration / 1000 / 60)
+    else:
+        duration_str = '{} hour'.format(duration / 1000 / 60 / 60)
+    return duration_str
