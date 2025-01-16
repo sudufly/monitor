@@ -75,13 +75,12 @@ if __name__ == "__main__":
             f_state_size = int(f_task_info.get('state_size', 0))
             f_duration = long(f_task_info.get('end_to_end_duration', 0))
 
-
             data.append(OrderedDict([
                 ("id", id),
                 ("name", name),
                 ("read records", read_records),
                 ("read size", cm.get_size(read_bytes)),
-                ("write records", write_bytes),
+                ("write records", write_records),
                 ("write size", cm.get_size(write_bytes)),
                 ("C Id", c_task_info['id']),
                 ("C StateSize", cm.get_size(c_state_size)),
@@ -90,7 +89,23 @@ if __name__ == "__main__":
                 # ("F StateSize", cm.get_size(f_state_size)),
                 # ("F Duration", cm.get_duration(f_duration)),
             ]))
-            backpressure = yarn.get_backpressure(app, jid, id)
+            base_metric = yarn.get_sub_task_vertices(app, jid, id, )
+            subtasks = base_metric['subtasks']
+            map = {}
+            for subtask in subtasks:
+                sub_id = subtask.get('subtask')
+                status = subtask.get('status')
+                metrics = subtask.get('metrics')
+                read_bytes = cm.get_size(metrics.get('read-bytes'))
+                read_records = metrics.get('read-records')
+                write_records = cm.get_size(metrics.get('write-records'))
+                write_bytes = metrics.get('write-bytes')
+
+                map[sub_id] = {'subtask': sub_id, 'status': status, 'read-records': read_records,
+                               'read-bytes': read_bytes, 'write-records': write_records,
+                               'write-bytes': write_bytes}
+
+            backpressure = yarn.get_sub_task_vertices(app, jid, id, 'backpressure')
             # print backpressure
             subtasks = backpressure['subtasks']
             for subtask in subtasks:
@@ -100,11 +115,17 @@ if __name__ == "__main__":
                 idle_ratio = subtask.get('idleRatio')
                 busy_ratio = subtask.get('busyRatio')
                 busy_ratio = 0 if 'NaN' == str(busy_ratio) else busy_ratio
-                print subtask
+                info = map.get(sub_id)
                 sub_data.append(OrderedDict([
-                    ("id", id),
+                    # ("id", id),
+                    ("name", name),
                     ("SubTask", sub_id),
-                    ("Backpressured / Idle / Busy", '{}% / {}% / {}% '.format(int(ratio * 100),int(idle_ratio * 100),int(busy_ratio * 100))),
+                    ("ReadRecords", read_records),
+                    ("ReadSize", read_bytes),
+                    ("WriteRecords", write_records),
+                    ("WriteSize", write_bytes),
+                    ("Backpressured / Idle / Busy",
+                     '{}% / {}% / {}% '.format(int(ratio * 100), int(idle_ratio * 100), int(busy_ratio * 100))),
                     ("Backpressure Status", level),
                 ]))
         cm.print_dataset('Operators Checkpoint', data)

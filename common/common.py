@@ -119,6 +119,7 @@ def display_width(text):
 
 
 def get_size(state_size):
+    state_size = int(state_size)
     if state_size > 1024 * 1024:
         state_size_str = '{} MB'.format(state_size / 1024 / 1024)
     else:

@@ -362,9 +362,11 @@ class YarnTool:
         else:
             print("Failed to fetch checkpoint data for job {}, status code: {}".format(job_id, response.status_code))
             return None
-    def get_backpressure(self, applicationId, job_id, taskId):
+
+    def get_sub_task_vertices(self, applicationId, job_id, taskId, mertric=None):
         # http://hbase2-102:18088/proxy/application_1735628121942_0025/jobs/bcfa94d231df5a3b80d2073437642fc6/vertices/292f4c54d2d1185e15fc2f2f23db50ce/backpressure
-        url = "{}/proxy/{}/jobs/{}/vertices/{}/backpressure".format(self.yarn_url, applicationId, job_id, taskId)
+        url = "{}/proxy/{}/jobs/{}/vertices/{}/{}".format(self.yarn_url, applicationId, job_id, taskId,
+                                                          '' if mertric is None else mertric)
         response = requests.get(url)
         print response.text.encode('utf-8')
         if response.status_code == 200:
@@ -372,6 +374,7 @@ class YarnTool:
         else:
             print("Failed to fetch checkpoint data for job {}, status code: {}".format(job_id, response.status_code))
             return None
+
     def get_taskmanagers(self, applicationId):
         url = "{}/proxy/{}/taskmanagers".format(self.yarn_url, applicationId)
         response = requests.get(url)
