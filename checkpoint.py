@@ -89,7 +89,14 @@ if __name__ == "__main__":
                 # ("F StateSize", cm.get_size(f_state_size)),
                 # ("F Duration", cm.get_duration(f_duration)),
             ]))
-            base_metric = yarn.get_sub_task_vertices(app, jid, id, )
+            base_metric = yarn.get_sub_task_vertices(app, jid, id)
+            watermarks = yarn.get_sub_task_vertices(app, jid, id, 'watermarks')
+            w_map = {}
+            for watermark in watermarks:
+                wid = (watermark['id'])
+                timestamp = watermark['value']
+                sub_id = wid.split('.')[0]
+                w_map[int(sub_id)] = {'watermark': timestamp}
             subtasks = base_metric['subtasks']
             map = {}
             for subtask in subtasks:
@@ -116,6 +123,8 @@ if __name__ == "__main__":
                 busy_ratio = subtask.get('busyRatio')
                 busy_ratio = 0 if 'NaN' == str(busy_ratio) else busy_ratio
                 info = map.get(sub_id)
+                watermark = w_map.get(sub_id,{}).get('watermark',0)
+                watermark = long(watermark)
                 sub_data.append(OrderedDict([
                     # ("id", id),
                     ("name", name),
@@ -127,6 +136,7 @@ if __name__ == "__main__":
                     ("Backpressured / Idle / Busy",
                      '{}% / {}% / {}% '.format(int(ratio * 100), int(idle_ratio * 100), int(busy_ratio * 100))),
                     ("Backpressure Status", level),
+                    ("WaterMark", watermark if watermark <= 0 else cm.utc_ms_to_time(long(watermark))),
                 ]))
         cm.print_dataset('Operators Checkpoint', data)
 

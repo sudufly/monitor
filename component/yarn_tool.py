@@ -368,6 +368,7 @@ class YarnTool:
         url = "{}/proxy/{}/jobs/{}/vertices/{}/{}".format(self.yarn_url, applicationId, job_id, taskId,
                                                           '' if mertric is None else mertric)
         response = requests.get(url)
+        # print url
         # print response.text.encode('utf-8')
         if response.status_code == 200:
             return response.json()
