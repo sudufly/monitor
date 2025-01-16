@@ -98,8 +98,8 @@ if __name__ == "__main__":
                 metrics = subtask.get('metrics')
                 read_bytes = cm.get_size(metrics.get('read-bytes'))
                 read_records = metrics.get('read-records')
-                write_records = cm.get_size(metrics.get('write-records'))
-                write_bytes = metrics.get('write-bytes')
+                write_records = metrics.get('write-records')
+                write_bytes = cm.get_size(metrics.get('write-bytes'))
 
                 map[sub_id] = {'subtask': sub_id, 'status': status, 'read-records': read_records,
                                'read-bytes': read_bytes, 'write-records': write_records,
