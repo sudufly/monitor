@@ -26,7 +26,7 @@ if [ ! -d "$path/tool" ]; then
 else
     echo "to update..."
     rsync -r  --exclude *.ini $target/monitor-main/ ./tool/
-    rsync -r  --exclude *.ini $target/monitor-main/setup/ ./setup/
+    rsync -r  --exclude setup.py $target/monitor-main/setup/ ./setup/
 fi
 
 sed -i 's/\r$//' $path/tool/*.py

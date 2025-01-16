@@ -35,10 +35,11 @@ if __name__ == "__main__":
             ("failed", failed),
 
         ]))
-        cm.print_dataset('Application View', data)
+        cm.print_dataset('{} Application View'.format(app), data)
         # main()
         details = yarn.get_job_details(app, jid)
         data = []
+        sub_data = []
         vertices = details.get('vertices')
 
         checkpoint = yarn.get_checkpoint_data(app, jid)
@@ -74,6 +75,7 @@ if __name__ == "__main__":
             f_state_size = int(f_task_info.get('state_size', 0))
             f_duration = long(f_task_info.get('end_to_end_duration', 0))
 
+
             data.append(OrderedDict([
                 ("id", id),
                 ("name", name),
@@ -84,8 +86,27 @@ if __name__ == "__main__":
                 ("C Id", c_task_info['id']),
                 ("C StateSize", cm.get_size(c_state_size)),
                 ("C Duration", cm.get_duration(c_duration)),
-                ("F Id", f_task_info.get('id', '-')),
-                ("F StateSize", cm.get_size(f_state_size)),
-                ("F Duration", cm.get_duration(f_duration)),
+                # ("F Id", f_task_info.get('id', '-')),
+                # ("F StateSize", cm.get_size(f_state_size)),
+                # ("F Duration", cm.get_duration(f_duration)),
             ]))
+            backpressure = yarn.get_backpressure(app, jid, id)
+            # print backpressure
+            subtasks = backpressure['subtasks']
+            for subtask in subtasks:
+                sub_id = subtask.get('subtask')
+                level = subtask.get('backpressure-level')
+                ratio = subtask.get('ratio')
+                idle_ratio = subtask.get('idleRatio')
+                busy_ratio = subtask.get('busyRatio')
+                busy_ratio = 0 if 'NaN' == str(busy_ratio) else busy_ratio
+                print subtask
+                sub_data.append(OrderedDict([
+                    ("id", id),
+                    ("SubTask", sub_id),
+                    ("Backpressured / Idle / Busy", '{}% / {}% / {}% '.format(int(ratio * 100),int(idle_ratio * 100),int(busy_ratio * 100))),
+                    ("Backpressure Status", level),
+                ]))
         cm.print_dataset('Operators Checkpoint', data)
+
+        cm.print_dataset('SubTask Status', sub_data)
