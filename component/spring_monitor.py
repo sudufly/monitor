@@ -156,6 +156,7 @@ class SpringMonitor(object):
                 elif state == 'UP' and last_state != 'UP':
                     print ("{} 恢复 {} -> {}".format(name, last_state, state))
                     # 异常恢复
+
                     wx.send(
                         recover(project, service, name, info['errTime'], '状态恢复,{} -> {}'.format(
                             last_state, state)))
@@ -217,6 +218,8 @@ class SpringMonitor(object):
         info = stateMap.get(name, {'state': 'EXIT', 'detectTime': cur_time, 'alarmTime': 0, 'errTime': cur_time})
         alarmTime = info.get('alarmTime', 0)
         errTime = info.get('errTime', cur_time)
+        if errTime == 0:
+            info['errTime'] = cur_time
 
         # 退出10min 报一次
         if (cur_time - alarmTime > warning_interval * 3):
