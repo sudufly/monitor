@@ -82,7 +82,7 @@ if __name__ == "__main__":
                 ("read size", cm.get_size(read_bytes)),
                 ("write records", write_records),
                 ("write size", cm.get_size(write_bytes)),
-                ("C Id", c_task_info['id']),
+                ("C Id", c_task_info.get('id','-')),
                 ("C StateSize", cm.get_size(c_state_size)),
                 ("C Duration", cm.get_duration(c_duration)),
                 # ("F Id", f_task_info.get('id', '-')),
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
             backpressure = yarn.get_sub_task_vertices(app, jid, id, 'backpressure')
             # print backpressure
-            subtasks = backpressure['subtasks']
+            subtasks = backpressure.get('subtasks',None)
             for subtask in subtasks:
                 sub_id = subtask.get('subtask')
                 level = subtask.get('backpressure-level')

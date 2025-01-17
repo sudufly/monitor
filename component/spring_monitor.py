@@ -216,12 +216,13 @@ class SpringMonitor(object):
 
         info = stateMap.get(name, {'state': 'EXIT', 'detectTime': cur_time, 'alarmTime': 0, 'errTime': cur_time})
         alarmTime = info.get('alarmTime', 0)
+        errTime = info.get('errTime', cur_time)
 
         # 退出10min 报一次
         if (cur_time - alarmTime > warning_interval * 3):
             info['alarmTime'] = cur_time
             print "{}异常退出".format(name)
-            wx.send(err(config.get_project(), service, name, info['errTime'],
+            wx.send(err(config.get_project(), service, name, errTime,
                         '程序退出,{} -> EXIT'.format(info['state'])))
         info['state'] = 'EXIT'
         info['detectTime'] = cur_time
