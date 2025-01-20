@@ -1,131 +1,28 @@
 # coding:utf-8
-import struct
 import traceback
 from collections import defaultdict
 from distutils import errors
 
-from kafka import KafkaAdminClient
+from kafka import KafkaAdminClient, KafkaClient, OffsetAndMetadata
 from kafka import TopicPartition, errors, KafkaConsumer
 from kafka.errors import kafka_errors
 from kafka.protocol.offset import OffsetResetStrategy, OffsetRequest, OffsetResponse
-from kafka.structs import GroupInformation  # 确保从正确的模块导入
 from urllib3.packages.six import iteritems
 
 from config.config import Config
 
 
-def parse_bytes(data, version=0):
-    """Parse byte string to extract metadata or assignment information."""
-    if not data:
-        return {}
-
-    pos = 0
-    result = {}
-
-    # Check version only if provided and greater than 0
-    if version > 0:
-        if len(data) < 2:
-            raise ValueError("Data too short to read version")
-        version, = struct.unpack_from('>h', data, pos)
-        pos += 2
-        result['version'] = version
-
-    # Read topics array length (int32)
-    if len(data) - pos < 4:
-        raise ValueError("Data too short to read topics array length")
-    topics_length, = struct.unpack_from('>i', data, pos)
-
-    pos += 4
-    result['topics'] = []
-
-    for _ in range(topics_length):
-        # Read topic name length (int16)
-        if len(data) - pos < 2:
-            raise ValueError("Data too short to read topic name length")
-        topic_name_length, = struct.unpack_from('>h', data, pos)
-        pos += 2
-
-        # Read topic name (string)
-        if len(data) - pos < topic_name_length:
-            raise ValueError("Data too short to read topic name")
-        topic_name = data[pos:pos + topic_name_length].decode('utf-8')
-        pos += topic_name_length
-
-        # Read partition array length (int32)
-        if len(data) - pos < 4:
-            raise ValueError("Data too short to read partition array length")
-        partitions_length, = struct.unpack_from('>i', data, pos)
-        pos += 4
-        partitions = []
-
-        for __ in range(partitions_length):
-            # Read partition id (int32)
-            if len(data) - pos < 4:
-                raise ValueError("Data too short to read partition id")
-            partition_id, = struct.unpack_from('>i', data, pos)
-            pos += 4
-            partitions.append(partition_id)
-
-        result['topics'].append({
-            'topic': topic_name,
-            'partitions': partitions
-        })
-
-    return result
-
-
-def parse_describe_groups_response(response_tuple):
-    # 使用 isinstance 来检查类型
-    if isinstance(response_tuple, GroupInformation):
-        print("The object is an instance of GroupInformation.")
-    else:
-        print("The object is not an instance of GroupInformation.")
-    version = 0
-    protocol = response_tuple[4]
-    print('协议:{}'.format(protocol))
-    if protocol == 'range' or protocol == '':
-        version = 1
-    else:
-        version = 0
-    error_code, group_id, state, protocol_type, protocol, members = response_tuple
-    group_info = {
-        'group_id': group_id,
-        'error_code': error_code,
-        'state': state,
-        'protocol_type': protocol_type,
-        'protocol': protocol,
-        'members': []
-    }
-
-    if error_code != 0:
-        print("消费组 {}: 错误码 {}".format(group_id, error_code))
-        return None
-
-    for member in members:
-        member_id, client_id, client_host, member_metadata, member_assignment = member
-        parsed_metadata = parse_bytes(member_metadata, version)
-        parsed_assignment = parse_bytes(member_assignment, version)
-
-        member_data = {
-            'member_id': member_id,
-            'client_id': client_id,
-            'client_host': client_host,
-            'member_metadata': parsed_metadata,
-            'member_assignment': parsed_assignment
-        }
-        group_info['members'].append(member_data)
-
-    return group_info
-
-
 class KafkaUtil:
     consumer = None
     client = None
-
+    _client = None
+    bootstrap_servers = None
     def __init__(self):
         config = Config()
-        bootstrap_servers = config.get_bootstrap_servers()
+        self.bootstrap_servers = config.get_bootstrap_servers()
+        bootstrap_servers = self.bootstrap_servers
         self.client = KafkaAdminClient(bootstrap_servers=bootstrap_servers)
+        self._client = KafkaClient(bootstrap_servers=bootstrap_servers)
         self.consumer = KafkaConsumer(
             bootstrap_servers=bootstrap_servers,
             auto_offset_reset='earliest',  # 从最早的消息开始
@@ -187,7 +84,6 @@ class KafkaUtil:
             print("发生错误: {}".format(e))
             traceback.print_exc()
             return None
-
 
     def get_partition_offsets(self, topic_name):
         consumer = self.consumer
@@ -316,6 +212,41 @@ class KafkaUtil:
         assert topic_partitions_without_a_leader.isdisjoint(highwater_offsets)
         return highwater_offsets, topic_partitions_without_a_leader
 
+    def list_consumer_group_offsets(self, groupId):
+        controller_version = self._client.check_version()
+        if controller_version < (0, 10, 2):
+            return  self.get_consumer_offsets(groupId)
+        else:
+            return self.client.list_consumer_group_offsets(groupId)
 
-    def list_consumer_group_offsets(self,groupId):
-        return self.client.list_consumer_group_offsets(groupId)
+
+
+    def get_consumer_offsets(self, group_id):
+        consumer = KafkaConsumer(
+            bootstrap_servers=self.bootstrap_servers,
+            group_id=group_id,
+            enable_auto_commit=False
+        )
+
+        # 获取所有主题和分区
+        topics = consumer.topics()
+        partitions_for_topics = {}
+        for topic in topics:
+            partitions_for_topics[topic] = consumer.partitions_for_topic(topic)
+
+        offsets = {}
+        for topic, partitions in partitions_for_topics.items():
+            for partition in partitions:
+                tp = TopicPartition(topic, partition)
+                committed_offset = consumer.committed(tp)
+                if committed_offset is not None:
+                    offsets[tp] = OffsetAndMetadata(committed_offset,None)
+
+        consumer.close()
+        return offsets
+
+# if __name__ == "__main__":
+#     offsets = get_consumer_offsets()
+#     print("消费组偏移量:")
+#     for tp, offset in offsets.items():
+#         print("Topic: {}, Partition: {}, Offset: {}".format(tp.topic,tp.partition,offset))
