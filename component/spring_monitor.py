@@ -143,7 +143,6 @@ class SpringMonitor(object):
 
             apps = self.get_apps(response.text)
             # print apps
-
             for name, ins in apps.items():
                 state = ins[1]
                 info = stateMap.get(name, {'state': state, 'detectTime': cur_time})
@@ -166,7 +165,7 @@ class SpringMonitor(object):
 
                 elif state != 'UP' and last_state == 'UP':
                     # 首次异常
-                    print "异常"
+                    print "首次异常"
                     wx.send(err(project, service, name, cur_time,
                                 '状态异常,{} -> {}'.format(last_state, state)))
 
@@ -217,9 +216,11 @@ class SpringMonitor(object):
 
         info = stateMap.get(name, {'state': 'EXIT', 'detectTime': cur_time, 'alarmTime': 0, 'errTime': cur_time})
         alarmTime = info.get('alarmTime', 0)
-        errTime = info.get('errTime', cur_time)
-        if errTime == 0:
+        if not info.has_key('errTime'):
             info['errTime'] = cur_time
+
+        errTime = info.get('errTime', cur_time)
+
 
         # 退出10min 报一次
         if (cur_time - alarmTime > warning_interval * 3):
