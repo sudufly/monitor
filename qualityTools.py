@@ -42,6 +42,14 @@ class MileageValidator:
             port=int(parsed_info['port'])
         )
         self.cursor = self.db.cursor()
+    def get_terminal_to_vin_mapping(self):
+        """从 t_car 表获取 terminal_id 与 car_vin 的映射"""
+        query = """
+            SELECT terminal_id, car_vin 
+            FROM t_car
+        """
+        self.cursor.execute(query)
+        return {row[0]: row[1] for row in self.cursor.fetchall()}
 
     def get_daily_summary(self, date):
         """从日统计表获取数据"""
@@ -68,6 +76,7 @@ class MileageValidator:
         """执行校验逻辑"""
         daily_data = self.get_daily_summary(date)
         route_sum = self.get_route_sum(date)
+        terminal_to_vin = self.get_terminal_to_vin_mapping()
 
         discrepancies = []
 
@@ -85,6 +94,7 @@ class MileageValidator:
             # 允许1公里的误差
             if abs(int(daily_mileage) - int(route_total)) > 1:
                 discrepancies.append({
+                    'car_vin': terminal_to_vin.get(vid, 'Unknown'),
                     'terminal_id': vid,
                     'daily': daily_mileage,
                     'route_sum': route_total,
@@ -101,7 +111,7 @@ class MileageValidator:
 
         print("🚨 Found discrepancies:")
         for item in discrepancies:
-            print("Vehicle {}:".format(item['terminal_id']))
+            print("Vehicle {}:".format(item['car_vin']))
             print("  Daily report: {}km".format(item['daily']))
             print("  Route sum: {}km".format(item['route_sum']))
             print("  Difference: {}km\n".format(item['diff']))
@@ -118,7 +128,7 @@ class MileageValidator:
             writer.writerow(['terminal_id', 'daily', 'route_sum', 'diff'])
             # 写入数据
             for item in discrepancies:
-                writer.writerow([item['terminal_id'], item['daily'], item['route_sum'], item['diff']])
+                writer.writerow([item['car_vin'],item['terminal_id'], item['daily'], item['route_sum'], item['diff']])
 
         print("CSV report generated: {}".format(filename))
 
@@ -130,5 +140,5 @@ if __name__ == "__main__":
     validator = MileageValidator()
     target_date = "2023-12-01"  # 可改为动态获取日期
     issues = validator.validate(target_date)
-    # validator.generate_report(issues)
+    validator.generate_report(issues)
     validator.generate_csv_report(issues, './report/' + target_date + '.csv')
