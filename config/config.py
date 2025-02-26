@@ -18,6 +18,10 @@ class Config:
     eureka_url = ''
     spring_app_name_set = set()
 
+    db_url = ""
+    db_user = ""
+    db_password = ""
+
     def __init__(self, debug=False):
 
         self.config = cm.getConfig(debug)
@@ -52,6 +56,13 @@ class Config:
         if len(spring_app_names) > 0:
             self.spring_app_name_set = set(spring_app_names.split(','))
             self.spring_app_name_set.discard('')
+
+        db = self.config['db']
+        if db is not None:
+
+            self.db_url = db.get('url','')
+            self.db_user = db.get('user','')
+            self.db_password = db.get('password','')
 
     def get_config(self):
         return self.config
@@ -91,3 +102,10 @@ class Config:
 
     def get_spring_enable(self):
         return self.spring_enable
+
+    def get_db_url(self):
+        return self.db_url
+    def get_db_user(self):
+        return self.db_user
+    def get_db_password(self):
+        return self.db_password

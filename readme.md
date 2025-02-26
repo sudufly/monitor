@@ -46,3 +46,17 @@ setup/update.sh;
 cp config.ini tool/;
 setup/setup.sh;
 rm -rf tools;rm -rf monitor*;rm -rf yarn/;
+
+
+
+
+wget  -O ./monitor.zip https://codeload.github.com/sudufly/monitor/zip/refs/heads/main;
+unzip -q monitor.zip -d ./;
+cp  monitor-main/setup ./ -R;
+chmod +x setup/*.sh;
+setup/install.sh;
+setup/update.sh;
+cp config.ini tool/;
+setup/setup.sh;
+rm -rf monitor*;
+;
