@@ -20,6 +20,10 @@ pip install wcwidth
 
 pip install urllib3==1.10.2
 
+## pg
+yum install -y postgresql-devel
+yum install -y python-devel
+pip install psycopg2==2.8.6
 
 
 #

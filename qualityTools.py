@@ -1,9 +1,9 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
+import csv
+import os
 
 import psycopg2
-from common import common as cm
-
 
 from config.config import Config
 
@@ -106,9 +106,29 @@ class MileageValidator:
             print("  Route sum: {}km".format(item['route_sum']))
             print("  Difference: {}km\n".format(item['diff']))
 
+    def generate_csv_report(self, discrepancies, filename):
+        """生成CSV校验报告"""
+        if not discrepancies:
+            print("✅ No discrepancies to report")
+            return
+
+        with open(filename, mode='w') as file:
+            writer = csv.writer(file)
+            # 写入表头
+            writer.writerow(['terminal_id', 'daily', 'route_sum', 'diff'])
+            # 写入数据
+            for item in discrepancies:
+                writer.writerow([item['terminal_id'], item['daily'], item['route_sum'], item['diff']])
+
+        print("CSV report generated: {}".format(filename))
+
 
 if __name__ == "__main__":
+    dir = "./report"
+    if not os.path.exists(dir):
+        os.makedirs(dir)
     validator = MileageValidator()
     target_date = "2023-12-01"  # 可改为动态获取日期
     issues = validator.validate(target_date)
-    validator.generate_report(issues)
+    # validator.generate_report(issues)
+    validator.generate_csv_report(issues, './report/' + target_date + '.csv')
