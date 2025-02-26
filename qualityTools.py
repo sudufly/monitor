@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 import csv
 import os
+import sys
 
+import cm as cm
 import psycopg2
+from common import common as cm
 
 from config.config import Config
 
@@ -31,9 +34,9 @@ class MileageValidator:
     def __init__(self):
         parsed_info = self.parse_jdbc_url(self.config.get_db_url())
 
-        print("Host:", parsed_info['host'])
-        print("Port:", parsed_info['port'])
-        print("Database:", parsed_info['database'])
+        # print("Host:", parsed_info['host'])
+        # print("Port:", parsed_info['port'])
+        # print("Database:", parsed_info['database'])
         self.db = psycopg2.connect(
             host=parsed_info['host'],
             user=self.config.get_db_user(),
@@ -137,8 +140,12 @@ if __name__ == "__main__":
     dir = "./report"
     if not os.path.exists(dir):
         os.makedirs(dir)
+    target_date = cm.get_yesterday_date()
+
+    if sys.argv is not None and len(sys.argv) >= 2:
+        target_date = sys.argv[1]
+
     validator = MileageValidator()
-    target_date = "2023-12-01"  # 可改为动态获取日期
     issues = validator.validate(target_date)
-    validator.generate_report(issues)
+    #validator.generate_report(issues)
     validator.generate_csv_report(issues, './report/' + target_date + '.csv')

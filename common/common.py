@@ -1,6 +1,8 @@
 # coding:utf-8
 import time
 import os
+import datetime
+
 import configparser
 
 # import wcwidth
@@ -137,3 +139,9 @@ def get_duration(duration):
     else:
         duration_str = '{} hour'.format(duration / 1000 / 60 / 60)
     return duration_str
+
+
+# 获取昨天的日期
+def get_yesterday_date():
+    yesterday = datetime.date.today() - datetime.timedelta(days=1)
+    return yesterday.strftime('%Y-%m-%d')
