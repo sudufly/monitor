@@ -68,7 +68,8 @@ DESCENDANTS
             tcm.model_name,
             SUM(oil_cost) / count(1) AS avg_oil_cost,
             SUM(mileage) / count(1) AS avg_mileage,
-            SUM(engine_time) / count(1) AS avg_engine_time
+            SUM(engine_time) / count(1) AS avg_engine_time,
+            count(1) as online_cnt
         FROM 
             t_o_vehicule_day td
         JOIN 
@@ -84,7 +85,7 @@ DESCENDANTS
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_model_id', 'model_name', 'avg_oil_cost', 'avg_mileage',
-                                   'avg_engine_time'])
+                                   'avg_engine_time','online_cnt'])
 
         df['avg_oil_cost'] = df['avg_oil_cost'].astype(float)
         df['avg_mileage'] = df['avg_mileage'].astype(float)
@@ -93,8 +94,9 @@ DESCENDANTS
             lambda row: row['avg_oil_cost'] / (row['avg_engine_time'] ) if row[
                                                                                            'avg_engine_time'] != 0 else 0,
             axis=1)
+
         return df[['clct_date', 'car_model_id', 'model_name', 'avg_oil_cost', 'avg_mileage', 'avg_engine_time',
-                   'avg_oil_consumption_per_hour']]
+                   'avg_oil_consumption_per_hour','online_cnt']]
 
     def get_electric_consumption(self, date):
         query = """
@@ -122,7 +124,8 @@ DESCENDANTS
             tcm.model_name,
             SUM(power_cost) / count(1) AS total_power_cost,
             SUM(mileage) / count(1) AS avg_mileage,
-            SUM(engine_time) / count(1) AS avg_engine_time
+            SUM(engine_time) / count(1) AS avg_engine_time,
+            count(1) as online_cnt
         FROM 
             t_o_vehicule_day td
         JOIN 
@@ -137,7 +140,7 @@ DESCENDANTS
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'avg_mileage',
-                                   'avg_engine_time'])
+                                   'avg_engine_time','online_cnt'])
         if len(df) == 0:
             return df
         df['total_power_cost'] = df['total_power_cost'].astype(float)
@@ -148,7 +151,7 @@ DESCENDANTS
                                                                                              'avg_engine_time'] != 0 else 0,
             axis=1)
         return df[['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'avg_mileage', 'avg_engine_time',
-                   'avg_power_consumption_per_hour']]
+                   'avg_power_consumption_per_hour','online_cnt']]
 
     def get_fuel_detail(self, date):
         query = """
