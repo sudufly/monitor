@@ -34,3 +34,12 @@ pip install pytz
 #pip install wcwidth
 
 pip install urllib3==1.10.2
+
+yum install -y postgresql-devel
+yum install -y python-devel
+pip install psycopg2==2.8.6
+
+pip install pandas==0.24.2
+
+pip install et-xmlfile==1.0.1
+pip install openpyxl==2.6.4

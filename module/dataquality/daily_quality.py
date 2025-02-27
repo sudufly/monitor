@@ -66,9 +66,9 @@ DESCENDANTS
             clct_date_ts::date AS clct_date,
             car_model_id,
             tcm.model_name,
-            SUM(oil_cost) AS total_oil_cost,
-            SUM(mileage) AS total_mileage,
-            SUM(engine_time) AS total_engine_time
+            SUM(oil_cost) / count(1) AS avg_oil_cost,
+            SUM(mileage) / count(1) AS avg_mileage,
+            SUM(engine_time) / count(1) AS avg_engine_time
         FROM 
             t_o_vehicule_day td
         JOIN 
@@ -76,24 +76,24 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone = 8
+            tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone =8 and online_state = 1
         GROUP BY 
             clct_date_ts::date, car_model_id, tcm.model_name;
         """
 
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
-                          columns=['clct_date', 'car_model_id', 'model_name', 'total_oil_cost', 'total_mileage',
-                                   'total_engine_time'])
+                          columns=['clct_date', 'car_model_id', 'model_name', 'avg_oil_cost', 'avg_mileage',
+                                   'avg_engine_time'])
 
-        df['total_oil_cost'] = df['total_oil_cost'].astype(float)
-        df['total_mileage'] = df['total_mileage'].astype(float)
-        df['total_engine_time'] = df['total_engine_time'].astype(float)/3600.0
+        df['avg_oil_cost'] = df['avg_oil_cost'].astype(float)
+        df['avg_mileage'] = df['avg_mileage'].astype(float)
+        df['avg_engine_time'] = df['avg_engine_time'].astype(float)/3600.0
         df['avg_oil_consumption_per_hour'] = df.apply(
-            lambda row: row['total_oil_cost'] / (row['total_engine_time'] ) if row[
-                                                                                           'total_engine_time'] != 0 else 0,
+            lambda row: row['avg_oil_cost'] / (row['avg_engine_time'] ) if row[
+                                                                                           'avg_engine_time'] != 0 else 0,
             axis=1)
-        return df[['clct_date', 'car_model_id', 'model_name', 'total_oil_cost', 'total_mileage', 'total_engine_time',
+        return df[['clct_date', 'car_model_id', 'model_name', 'avg_oil_cost', 'avg_mileage', 'avg_engine_time',
                    'avg_oil_consumption_per_hour']]
 
     def get_electric_consumption(self, date):
@@ -120,9 +120,9 @@ DESCENDANTS
             clct_date_ts::date AS clct_date,
             car_model_id,
             tcm.model_name,
-            SUM(power_cost) AS total_power_cost,
-            SUM(mileage) AS total_mileage,
-            SUM(engine_time) AS total_engine_time
+            SUM(power_cost) / count(1) AS total_power_cost,
+            SUM(mileage) / count(1) AS avg_mileage,
+            SUM(engine_time) / count(1) AS avg_engine_time
         FROM 
             t_o_vehicule_day td
         JOIN 
@@ -130,24 +130,24 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone = 8
+            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone =8 and online_state = 1
         GROUP BY 
             clct_date_ts::date, car_model_id, tcm.model_name;
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
-                          columns=['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'total_mileage',
-                                   'total_engine_time'])
+                          columns=['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'avg_mileage',
+                                   'avg_engine_time'])
         if len(df) == 0:
             return df
         df['total_power_cost'] = df['total_power_cost'].astype(float)
-        df['total_mileage'] = df['total_mileage'].astype(float)
-        df['total_engine_time'] = df['total_engine_time'].astype(float)/3600.0
+        df['avg_mileage'] = df['avg_mileage'].astype(float)
+        df['avg_engine_time'] = df['avg_engine_time'].astype(float)/3600.0
         df['avg_power_consumption_per_hour'] = df.apply(
-            lambda row: row['total_power_cost'] / (row['total_engine_time'] ) if row[
-                                                                                             'total_engine_time'] != 0 else 0,
+            lambda row: row['total_power_cost'] / (row['avg_engine_time'] ) if row[
+                                                                                             'avg_engine_time'] != 0 else 0,
             axis=1)
-        return df[['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'total_mileage', 'total_engine_time',
+        return df[['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'avg_mileage', 'avg_engine_time',
                    'avg_power_consumption_per_hour']]
 
     def get_fuel_detail(self, date):
@@ -184,7 +184,7 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone = 8;
+            tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone =8 and online_state = 1;
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
@@ -233,7 +233,7 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone = 8;
+            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone =8 and online_state = 1 ;
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
@@ -265,9 +265,9 @@ DESCENDANTS
 
 
             self.add_bar_chart(u"平均油耗/小时", dfs['fuel_avg'], ws_fuel_avg,7, "K2")
-            self.add_bar_chart(u"总油耗", dfs['fuel_avg'], ws_fuel_avg, 4,'K17')
-            self.add_bar_chart(u"总里程", dfs['fuel_avg'], ws_fuel_avg, 5,'K31')
-            self.add_bar_chart(u"总时长", dfs['fuel_avg'], ws_fuel_avg, 6,'K45')
+            self.add_bar_chart(u"平均油耗", dfs['fuel_avg'], ws_fuel_avg, 4,'K17')
+            self.add_bar_chart(u"平均里程", dfs['fuel_avg'], ws_fuel_avg, 5,'K31')
+            self.add_bar_chart(u"平均时长", dfs['fuel_avg'], ws_fuel_avg, 6,'K45')
 
 
             # 添加柱状图到 Electric Avg Consumption
@@ -275,9 +275,9 @@ DESCENDANTS
 
 
             self.add_bar_chart(u"平均电耗/小时", dfs['electric_avg'], ws_electric_avg,7, "K2")
-            self.add_bar_chart(u"总电耗", dfs['electric_avg'], ws_electric_avg, 4,'K16')
-            self.add_bar_chart(u"总里程", dfs['electric_avg'], ws_electric_avg, 5,'K31')
-            self.add_bar_chart(u"总时长", dfs['electric_avg'], ws_electric_avg, 6,'K45')
+            self.add_bar_chart(u"平均电耗", dfs['electric_avg'], ws_electric_avg, 4,'K16')
+            self.add_bar_chart(u"平均里程", dfs['electric_avg'], ws_electric_avg, 5,'K31')
+            self.add_bar_chart(u"平均时长", dfs['electric_avg'], ws_electric_avg, 6,'K45')
 
         print("Excel report generated: {}".format(filename))
 
