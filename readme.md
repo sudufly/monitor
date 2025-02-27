@@ -27,7 +27,14 @@ pip install psycopg2==2.8.6
 
 ##
 pip install pandas -i "https://pypi.doubanio.com/simple/"
+
+pip -v install pandas==0.24.2
+
+pip install et-xmlfile==1.0.1
 pip install openpyxl==2.6.4
+
+
+
 
 
 

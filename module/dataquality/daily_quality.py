@@ -44,6 +44,24 @@ class FuelElectricConsumption:
 
     def get_fuel_consumption(self, date):
         query = """
+                WITH RECURSIVE DESCENDANTS AS (
+		select uo.*,'' as modelParentStr  from
+		t_car_model uo
+		where uo.model_level = (
+		    select max(model_level) from t_car_model
+
+		)
+		UNION ALL
+		SELECT  B.* ,concat_ws(' ',D.modelParentStr,D.model_name) as modelParentStr
+		FROM t_car_model B
+		INNER JOIN DESCENDANTS D ON D.model_id = B.model_parent
+		)
+		,m as(
+		select
+model_id,energy_type,concat_ws(' ',modelParentStr,model_name) as model_name
+from
+DESCENDANTS
+		)
         SELECT 
             clct_date_ts::date AS clct_date,
             car_model_id,
@@ -56,21 +74,23 @@ class FuelElectricConsumption:
         JOIN 
             t_car tc ON td.dev_id = tc.terminal_id
         JOIN 
-            t_car_model tcm ON tc.car_model_id = tcm.model_id
+            m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
             tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone = 8
         GROUP BY 
             clct_date_ts::date, car_model_id, tcm.model_name;
         """
+
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_model_id', 'model_name', 'total_oil_cost', 'total_mileage',
                                    'total_engine_time'])
+
         df['total_oil_cost'] = df['total_oil_cost'].astype(float)
         df['total_mileage'] = df['total_mileage'].astype(float)
-        df['total_engine_time'] = df['total_engine_time'].astype(float)
+        df['total_engine_time'] = df['total_engine_time'].astype(float)/3600.0
         df['avg_oil_consumption_per_hour'] = df.apply(
-            lambda row: row['total_oil_cost'] / (row['total_engine_time'] / 3600.0) if row[
+            lambda row: row['total_oil_cost'] / (row['total_engine_time'] ) if row[
                                                                                            'total_engine_time'] != 0 else 0,
             axis=1)
         return df[['clct_date', 'car_model_id', 'model_name', 'total_oil_cost', 'total_mileage', 'total_engine_time',
@@ -78,6 +98,24 @@ class FuelElectricConsumption:
 
     def get_electric_consumption(self, date):
         query = """
+                WITH RECURSIVE DESCENDANTS AS (
+		select uo.*,'' as modelParentStr  from
+		t_car_model uo
+		where uo.model_level = (
+		    select max(model_level) from t_car_model
+
+		)
+		UNION ALL
+		SELECT  B.* ,concat_ws(' ',D.modelParentStr,D.model_name) as modelParentStr
+		FROM t_car_model B
+		INNER JOIN DESCENDANTS D ON D.model_id = B.model_parent
+		)
+		,m as(
+		select
+model_id,energy_type,concat_ws(' ',modelParentStr,model_name) as model_name
+from
+DESCENDANTS
+		)
         SELECT 
             clct_date_ts::date AS clct_date,
             car_model_id,
@@ -90,7 +128,7 @@ class FuelElectricConsumption:
         JOIN 
             t_car tc ON td.dev_id = tc.terminal_id
         JOIN 
-            t_car_model tcm ON tc.car_model_id = tcm.model_id
+            m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
             tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone = 8
         GROUP BY 
@@ -100,11 +138,13 @@ class FuelElectricConsumption:
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'total_mileage',
                                    'total_engine_time'])
+        if len(df) == 0:
+            return df
         df['total_power_cost'] = df['total_power_cost'].astype(float)
         df['total_mileage'] = df['total_mileage'].astype(float)
-        df['total_engine_time'] = df['total_engine_time'].astype(float)
+        df['total_engine_time'] = df['total_engine_time'].astype(float)/3600.0
         df['avg_power_consumption_per_hour'] = df.apply(
-            lambda row: row['total_power_cost'] / (row['total_engine_time'] / 3600.0) if row[
+            lambda row: row['total_power_cost'] / (row['total_engine_time'] ) if row[
                                                                                              'total_engine_time'] != 0 else 0,
             axis=1)
         return df[['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'total_mileage', 'total_engine_time',
@@ -112,6 +152,24 @@ class FuelElectricConsumption:
 
     def get_fuel_detail(self, date):
         query = """
+                WITH RECURSIVE DESCENDANTS AS (
+		select uo.*,'' as modelParentStr  from
+		t_car_model uo
+		where uo.model_level = (
+		    select max(model_level) from t_car_model
+
+		)
+		UNION ALL
+		SELECT  B.* ,concat_ws(' ',D.modelParentStr,D.model_name) as modelParentStr
+		FROM t_car_model B
+		INNER JOIN DESCENDANTS D ON D.model_id = B.model_parent
+		)
+		,m as(
+		select
+model_id,energy_type,concat_ws(' ',modelParentStr,model_name) as model_name
+from
+DESCENDANTS
+		)
         SELECT 
             clct_date_ts::date AS clct_date,
             car_model_id,
@@ -124,22 +182,43 @@ class FuelElectricConsumption:
         JOIN 
             t_car tc ON td.dev_id = tc.terminal_id
         JOIN 
-            t_car_model tcm ON tc.car_model_id = tcm.model_id
+            m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
             tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone = 8;
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_model_id', 'model_name', 'oil_cost', 'mileage', 'engine_time'])
+        if len(df) == 0:
+            return df
         df['oil_cost'] = df['oil_cost'].astype(float)
         df['mileage'] = df['mileage'].astype(float)
-        df['engine_time'] = df['engine_time'].astype(float)
+        df['engine_time'] = df['engine_time'].astype(float)/3600.0
         df['oil_consumption_per_hour'] = df.apply(
-            lambda row: row['oil_cost'] / (row['engine_time'] / 3600.0) if row['engine_time'] != 0 else 0, axis=1)
+            lambda row: row['oil_cost'] / (row['engine_time'] ) if row['engine_time'] != 0 else 0, axis=1)
         return df
 
     def get_electric_detail(self, date):
         query = """
+        WITH RECURSIVE DESCENDANTS AS (
+		select uo.*,'' as modelParentStr  from
+		t_car_model uo
+		where uo.model_level = (
+		    select max(model_level) from t_car_model
+
+		)
+		UNION ALL
+		SELECT  B.* ,concat_ws(' ',D.modelParentStr,D.model_name) as modelParentStr
+		FROM t_car_model B
+		INNER JOIN DESCENDANTS D ON D.model_id = B.model_parent
+		)
+		,m as(
+		select
+        model_id,energy_type,concat_ws(' ',modelParentStr,model_name) as model_name
+        from
+        DESCENDANTS
+		)
+        
         SELECT 
             clct_date_ts::date AS clct_date,
             car_model_id,
@@ -152,47 +231,53 @@ class FuelElectricConsumption:
         JOIN 
             t_car tc ON td.dev_id = tc.terminal_id
         JOIN 
-            t_car_model tcm ON tc.car_model_id = tcm.model_id
+            m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
             tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone = 8;
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_model_id', 'model_name', 'power_cost', 'mileage', 'engine_time'])
+        if len(df) == 0:
+            return df
         df['power_cost'] = df['power_cost'].astype(float)
         df['mileage'] = df['mileage'].astype(float)
-        df['engine_time'] = df['engine_time'].astype(float)
+        df['engine_time'] = df['engine_time'].astype(float)/3600.0
         df['power_consumption_per_hour'] = df.apply(
-            lambda row: row['power_cost'] / (row['engine_time'] / 3600.0) if row['engine_time'] != 0 else 0, axis=1)
+            lambda row: row['power_cost'] / (row['engine_time'] ) if row['engine_time'] != 0 else 0, axis=1)
         return df
 
     def write_to_excel(self, dfs, filename):
 
         with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-            dfs['fuel_avg'].to_excel(writer, sheet_name='Fuel Avg Consumption', index=False)
-            dfs['electric_avg'].to_excel(writer, sheet_name='Electric Avg Consumption', index=False)
-            dfs['fuel_detail'].to_excel(writer, sheet_name='Fuel Detail Consumption', index=False)
-            dfs['electric_detail'].to_excel(writer, sheet_name='Electric Detail Consumption', index=False)
+            fuel = u'传统车'
+            elec = u'新能源'
+            fuel_detail = u'传统车明细'
+            elec_detail = u'新能源明细'
+            dfs['fuel_avg'].to_excel(writer, sheet_name=fuel, index=False)
+            dfs['electric_avg'].to_excel(writer, sheet_name=elec, index=False)
+            dfs['fuel_detail'].to_excel(writer, sheet_name=fuel_detail, index=False)
+            dfs['electric_detail'].to_excel(writer, sheet_name=elec_detail, index=False)
 
             # 添加柱状图到 Fuel Avg Consumption
-            ws_fuel_avg = writer.sheets['Fuel Avg Consumption']
+            ws_fuel_avg = writer.sheets[fuel]
 
 
 
-            self.add_bar_chart("Fuel Avg Consumption per Hour", dfs['fuel_avg'], ws_fuel_avg,7, "K2")
-            self.add_bar_chart("Total Fuel Consumption", dfs['fuel_avg'], ws_fuel_avg, 4,'K17')
-            self.add_bar_chart("Total Mileage", dfs['fuel_avg'], ws_fuel_avg, 5,'K31')
-            self.add_bar_chart("Total Engine Time", dfs['fuel_avg'], ws_fuel_avg, 6,'K45')
+            self.add_bar_chart(u"平均油耗/小时", dfs['fuel_avg'], ws_fuel_avg,7, "K2")
+            self.add_bar_chart(u"总油耗", dfs['fuel_avg'], ws_fuel_avg, 4,'K17')
+            self.add_bar_chart(u"总里程", dfs['fuel_avg'], ws_fuel_avg, 5,'K31')
+            self.add_bar_chart(u"总时长", dfs['fuel_avg'], ws_fuel_avg, 6,'K45')
 
 
             # 添加柱状图到 Electric Avg Consumption
-            ws_electric_avg = writer.sheets['Electric Avg Consumption']
+            ws_electric_avg = writer.sheets[elec_detail]
 
 
-            self.add_bar_chart("Electric Avg Consumption per Hour", dfs['electric_avg'], ws_electric_avg,7, "K2")
-            self.add_bar_chart("Total Electric Consumption", dfs['electric_avg'], ws_electric_avg, 4,'K16')
-            self.add_bar_chart("Total Mileage", dfs['electric_avg'], ws_electric_avg, 5,'K31')
-            self.add_bar_chart("Total Engine Time", dfs['electric_avg'], ws_electric_avg, 6,'K45')
+            self.add_bar_chart(u"平均电耗/小时", dfs['electric_avg'], ws_electric_avg,7, "K2")
+            self.add_bar_chart(u"总电耗", dfs['electric_avg'], ws_electric_avg, 4,'K16')
+            self.add_bar_chart(u"总里程", dfs['electric_avg'], ws_electric_avg, 5,'K31')
+            self.add_bar_chart(u"总时长", dfs['electric_avg'], ws_electric_avg, 6,'K45')
 
         print("Excel report generated: {}".format(filename))
 
