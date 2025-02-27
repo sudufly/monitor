@@ -153,6 +153,7 @@ DESCENDANTS
         return df[['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'avg_mileage', 'avg_engine_time',
                    'avg_power_consumption_per_hour','online_cnt']]
 
+
     def get_fuel_detail(self, date):
         query = """
                 WITH RECURSIVE DESCENDANTS AS (
