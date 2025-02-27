@@ -25,6 +25,13 @@ yum install -y postgresql-devel
 yum install -y python-devel
 pip install psycopg2==2.8.6
 
+##
+pip install pandas -i "https://pypi.doubanio.com/simple/"
+pip install openpyxl==2.6.4
+
+
+
+
 
 #
 sed -i 's/\r$//' x.py

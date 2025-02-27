@@ -4,11 +4,11 @@ import csv
 import os
 import sys
 
-import cm as cm
 import psycopg2
 from common import common as cm
 
 from config.config import Config
+from module.dataquality.daily_quality import FuelElectricConsumption
 
 
 # 替换MySQL驱动为PostgreSQL驱动
@@ -67,13 +67,28 @@ class MileageValidator:
     def get_route_sum(self, date):
         """从行程表计算当日里程总和"""
         query = """
-            SELECT terminal_id, SUM(mileage) 
-            FROM t_drive_route
-            WHERE DATE(start_time) = %s
-            GROUP BY terminal_id
+            SELECT 
+            terminal_id, 
+            SUM(mileage) AS route_sum,
+            CASE 
+                WHEN MAX(end_time)::date <> MIN(start_time)::date THEN 'Yes'
+                ELSE 'No'
+            END AS is_cross_day
+        FROM t_drive_route
+        WHERE (DATE(start_time) = %s OR DATE(end_time) = %s)
+        GROUP BY terminal_id
         """
-        self.cursor.execute(query, (date,))
-        return {row[0]: row[1] for row in self.cursor.fetchall()}
+        self.cursor.execute(query, (date,date))
+        results = self.cursor.fetchall()
+        route_sum = {}
+        for row in results:
+            terminal_id = row[0]
+            route_sum[terminal_id] = {
+                'sum': row[1],
+                'is_cross_day': row[2]
+            }
+
+        return route_sum
 
     def validate(self, date):
         """执行校验逻辑"""
@@ -88,12 +103,15 @@ class MileageValidator:
 
         for vid in all_vehicles:
             daily_mileage = daily_data.get(vid, 0)
-            route_total = route_sum.get(vid, 0)
+            route_data = route_sum.get(vid, {'sum': 0, 'is_cross_day': 'No'})
+            route_total = route_data['sum']
+            is_cross_day = route_data['is_cross_day']
             if daily_mileage is None:
                 daily_mileage = 0
             if route_total is None:
                 route_total = 0
-
+            if is_cross_day is None:
+                is_cross_day = ''
             # 允许1公里的误差
             if abs(int(daily_mileage) - int(route_total)) > 1:
                 discrepancies.append({
@@ -101,7 +119,8 @@ class MileageValidator:
                     'terminal_id': vid,
                     'daily': daily_mileage,
                     'route_sum': route_total,
-                    'diff': abs(daily_mileage - route_total)
+                    'diff': abs(daily_mileage - route_total),
+                    'is_cross_day': is_cross_day
                 })
 
         return discrepancies
@@ -128,24 +147,31 @@ class MileageValidator:
         with open(filename, mode='w') as file:
             writer = csv.writer(file)
             # 写入表头
-            writer.writerow(['terminal_id', 'daily', 'route_sum', 'diff'])
+            writer.writerow(['car_vin','terminal_id', 'daily', 'route_sum', 'diff','is_cross_day'])
             # 写入数据
             for item in discrepancies:
-                writer.writerow([item['car_vin'],item['terminal_id'], item['daily'], item['route_sum'], item['diff']])
+                writer.writerow([item['car_vin'],item['terminal_id'], item['daily'], item['route_sum'], item['diff'],item['is_cross_day']])
 
         print("CSV report generated: {}".format(filename))
 
 
 if __name__ == "__main__":
-    dir = "./report"
-    if not os.path.exists(dir):
-        os.makedirs(dir)
     target_date = cm.get_yesterday_date()
-
-    if sys.argv is not None and len(sys.argv) >= 2:
+    if len(sys.argv) >= 2:
         target_date = sys.argv[1]
 
-    validator = MileageValidator()
-    issues = validator.validate(target_date)
-    #validator.generate_report(issues)
-    validator.generate_csv_report(issues, './report/' + target_date + '.csv')
+
+    validator = FuelElectricConsumption()
+    validator.generate_reports(target_date)
+    # dir = "./report"
+    # if not os.path.exists(dir):
+    #     os.makedirs(dir)
+    # target_date = cm.get_yesterday_date()
+    #
+    # if sys.argv is not None and len(sys.argv) >= 2:
+    #     target_date = sys.argv[1]
+    #
+    # validator = MileageValidator()
+    # issues = validator.validate(target_date)
+    # #validator.generate_report(issues)
+    # validator.generate_csv_report(issues, './report/' + target_date + '.csv')
