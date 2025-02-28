@@ -15,11 +15,12 @@ class EmailClient:
     config = Config()
 
     def send_zip_via_email(self, zip_path):
+        print self.config.get_project()
         project = self.config.get_project()
         smtp_server = 'smtp.exmail.qq.com'
         smtp_port = 465
         username = 'hqerp@hopechart.com'
-        password = 'aRC5fjvUHrJ22nQT'
+        password = ''
         from_addr = 'hqerp@hopechart.com'
         to_addrs = 'bo.xu@hopechart.com'
 
@@ -27,7 +28,7 @@ class EmailClient:
         msg['From'] = from_addr
         msg['To'] = to_addrs
         msg['Date'] = formatdate(localtime=True)
-        msg['Subject'] = u'{}-质量报告-{}'.format(project, cm.get_yesterday_date())
+        msg['Subject'] = u'质量报告-{}'.format( cm.get_yesterday_date())
 
         body = ''
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
