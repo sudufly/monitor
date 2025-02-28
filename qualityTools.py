@@ -62,6 +62,7 @@ class Report:
 
 
 if __name__ == "__main__":
+    config = Config()
 
     target_date = cm.get_yesterday_date()
     if len(sys.argv) >= 2:
@@ -79,8 +80,8 @@ if __name__ == "__main__":
 
     route_quality = RouteQuality()
     daily_quality = DailyQuality()
-
-    route_quality.process(target_date, dir)
+    if config.get_quality_route_enable():
+        route_quality.process(target_date, dir)
     daily_quality.process(target_date, dir)
 
     # report = Report()
