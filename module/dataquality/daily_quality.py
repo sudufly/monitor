@@ -1,9 +1,6 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-import os
-import sys
-
 import pandas as pd
 import psycopg2
 from openpyxl.chart import BarChart, Reference
@@ -11,7 +8,7 @@ from openpyxl.chart import BarChart, Reference
 from config.config import Config
 
 
-class FuelElectricConsumption:
+class DailyQuality:
     config = Config()
 
     def parse_jdbc_url(self, jdbc_url):
@@ -85,18 +82,18 @@ DESCENDANTS
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_model_id', 'model_name', 'avg_oil_cost', 'avg_mileage',
-                                   'avg_engine_time','online_cnt'])
+                                   'avg_engine_time', 'online_cnt'])
 
         df['avg_oil_cost'] = df['avg_oil_cost'].astype(float)
         df['avg_mileage'] = df['avg_mileage'].astype(float)
-        df['avg_engine_time'] = df['avg_engine_time'].astype(float)/3600.0
+        df['avg_engine_time'] = df['avg_engine_time'].astype(float) / 3600.0
         df['avg_oil_consumption_per_hour'] = df.apply(
-            lambda row: row['avg_oil_cost'] / (row['avg_engine_time'] ) if row[
-                                                                                           'avg_engine_time'] != 0 else 0,
+            lambda row: row['avg_oil_cost'] / (row['avg_engine_time']) if row[
+                                                                              'avg_engine_time'] != 0 else 0,
             axis=1)
 
         return df[['clct_date', 'car_model_id', 'model_name', 'avg_oil_cost', 'avg_mileage', 'avg_engine_time',
-                   'avg_oil_consumption_per_hour','online_cnt']]
+                   'avg_oil_consumption_per_hour', 'online_cnt']]
 
     def get_electric_consumption(self, date):
         query = """
@@ -140,19 +137,18 @@ DESCENDANTS
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'avg_mileage',
-                                   'avg_engine_time','online_cnt'])
+                                   'avg_engine_time', 'online_cnt'])
         if len(df) == 0:
             return df
         df['total_power_cost'] = df['total_power_cost'].astype(float)
         df['avg_mileage'] = df['avg_mileage'].astype(float)
-        df['avg_engine_time'] = df['avg_engine_time'].astype(float)/3600.0
+        df['avg_engine_time'] = df['avg_engine_time'].astype(float) / 3600.0
         df['avg_power_consumption_per_hour'] = df.apply(
-            lambda row: row['total_power_cost'] / (row['avg_engine_time'] ) if row[
-                                                                                             'avg_engine_time'] != 0 else 0,
+            lambda row: row['total_power_cost'] / (row['avg_engine_time']) if row[
+                                                                                  'avg_engine_time'] != 0 else 0,
             axis=1)
         return df[['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'avg_mileage', 'avg_engine_time',
-                   'avg_power_consumption_per_hour','online_cnt']]
-
+                   'avg_power_consumption_per_hour', 'online_cnt']]
 
     def get_fuel_detail(self, date):
         query = """
@@ -194,14 +190,15 @@ DESCENDANTS
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
-                          columns=['clct_date','car_vin','terminal_id', 'car_model_id', 'model_name', 'oil_cost', 'mileage', 'engine_time'])
+                          columns=['clct_date', 'car_vin', 'terminal_id', 'car_model_id', 'model_name', 'oil_cost',
+                                   'mileage', 'engine_time'])
         if len(df) == 0:
             return df
         df['oil_cost'] = df['oil_cost'].astype(float)
         df['mileage'] = df['mileage'].astype(float)
-        df['engine_time'] = df['engine_time'].astype(float)/3600.0
-        df['oil_consumption_per_hour'] = df.apply(
-            lambda row: row['oil_cost'] / (row['engine_time'] ) if row['engine_time'] != 0 else 0, axis=1)
+        df['engine_time'] = df['engine_time'].astype(float) / 3600.0
+        df['oil_cost_per_100km'] = df.apply(
+            lambda row: row['oil_cost'] / row['mileage'] * 100 if row['mileage'] != 0 else 0, axis=1)
         return df
 
     def get_electric_detail(self, date):
@@ -245,14 +242,15 @@ DESCENDANTS
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
-                          columns=['clct_date', 'car_vin','terminal_id','car_model_id', 'model_name', 'power_cost', 'mileage', 'engine_time'])
+                          columns=['clct_date', 'car_vin', 'terminal_id', 'car_model_id', 'model_name', 'power_cost',
+                                   'mileage', 'engine_time'])
         if len(df) == 0:
             return df
         df['power_cost'] = df['power_cost'].astype(float)
         df['mileage'] = df['mileage'].astype(float)
-        df['engine_time'] = df['engine_time'].astype(float)/3600.0
-        df['power_consumption_per_hour'] = df.apply(
-            lambda row: row['power_cost'] / (row['engine_time'] ) if row['engine_time'] != 0 else 0, axis=1)
+        df['engine_time'] = df['engine_time'].astype(float) / 3600.0
+        df['power_cost_per_100km'] = df.apply(
+            lambda row: row['power_cost'] / row['mileage'] * 100 if row['mileage'] != 0 else 0, axis=1)
         return df
 
     def write_to_excel(self, dfs, filename):
@@ -270,43 +268,36 @@ DESCENDANTS
             # 添加柱状图到 Fuel Avg Consumption
             ws_fuel_avg = writer.sheets[fuel]
 
-
-
-            self.add_bar_chart(u"平均油耗/小时", dfs['fuel_avg'], ws_fuel_avg,7, "K2")
-            self.add_bar_chart(u"平均油耗", dfs['fuel_avg'], ws_fuel_avg, 4,'K17')
-            self.add_bar_chart(u"平均里程", dfs['fuel_avg'], ws_fuel_avg, 5,'K31')
-            self.add_bar_chart(u"平均时长", dfs['fuel_avg'], ws_fuel_avg, 6,'K45')
-
+            self.add_bar_chart(u"平均油耗/小时", dfs['fuel_avg'], ws_fuel_avg, 7, "K2")
+            self.add_bar_chart(u"平均油耗", dfs['fuel_avg'], ws_fuel_avg, 4, 'K17')
+            self.add_bar_chart(u"平均里程", dfs['fuel_avg'], ws_fuel_avg, 5, 'K31')
+            self.add_bar_chart(u"平均时长", dfs['fuel_avg'], ws_fuel_avg, 6, 'K45')
 
             # 添加柱状图到 Electric Avg Consumption
             ws_electric_avg = writer.sheets[elec_detail]
 
-
-            self.add_bar_chart(u"平均电耗/小时", dfs['electric_avg'], ws_electric_avg,7, "K2")
-            self.add_bar_chart(u"平均电耗", dfs['electric_avg'], ws_electric_avg, 4,'K16')
-            self.add_bar_chart(u"平均里程", dfs['electric_avg'], ws_electric_avg, 5,'K31')
-            self.add_bar_chart(u"平均时长", dfs['electric_avg'], ws_electric_avg, 6,'K45')
+            self.add_bar_chart(u"平均电耗/小时", dfs['electric_avg'], ws_electric_avg, 7, "K2")
+            self.add_bar_chart(u"平均电耗", dfs['electric_avg'], ws_electric_avg, 4, 'K16')
+            self.add_bar_chart(u"平均里程", dfs['electric_avg'], ws_electric_avg, 5, 'K31')
+            self.add_bar_chart(u"平均时长", dfs['electric_avg'], ws_electric_avg, 6, 'K45')
 
         print(u"Excel report generated: {}".format(filename))
 
-    def add_bar_chart(self, title, dfs, sheet, c1,column):
+    def add_bar_chart(self, title, dfs, sheet, c1, column):
         chart = BarChart()
         chart.title = title
         chart.height = 6
         datas = Reference(sheet, min_col=c1, min_row=1,
-                                              max_row=len(dfs) + 1)
+                          max_row=len(dfs) + 1)
         labels = Reference(sheet, min_col=3, min_row=2,
-                                                max_row=len(dfs) + 1)
+                           max_row=len(dfs) + 1)
         chart.add_data(datas, titles_from_data=True)
         chart.set_categories(labels)
 
         # chart_electric_engine_time.dataLabels = True
         sheet.add_chart(chart, column)
 
-    def generate_reports(self, date):
-        dir = "./report/{}".format(date)
-        if not os.path.exists(dir):
-            os.makedirs(dir)
+    def generate_reports(self, date, dir):
 
         fuel_avg_df = self.get_fuel_consumption(date)
         electric_avg_df = self.get_electric_consumption(date)
@@ -320,16 +311,7 @@ DESCENDANTS
             'electric_detail': electric_detail_df
         }
 
-        self.write_to_excel(dfs, u'{}/日统计{}.xlsx'.format(dir,date.replace('-', '')))
+        self.write_to_excel(dfs, u'{}/日统计{}.xlsx'.format(dir, date))
 
-
-if __name__ == "__main__":
-    target_date = None
-    if len(sys.argv) >= 2:
-        target_date = sys.argv[1]
-    else:
-        print("Usage: python2 daily_quality.py <date>")
-        sys.exit(1)
-
-    validator = FuelElectricConsumption()
-    validator.generate_reports(target_date)
+    def process(self, target_date, dir):
+        self.generate_reports(target_date, dir)

@@ -22,6 +22,9 @@ class Config:
     db_user = ""
     db_password = ""
 
+    quality_route_enable = False
+    quality_daily_enable = False
+
     def __init__(self, debug=False):
 
         self.config = cm.getConfig(debug)
@@ -63,6 +66,12 @@ class Config:
             self.db_url = db.get('url','')
             self.db_user = db.get('user','')
             self.db_password = db.get('password','')
+
+        quality = self.config['quality']
+        if 'routeEnable' in quality:
+            self.quality_route_enable = quality['routeEnable'].lower() == 'True'.lower()
+        if 'dailyEnable' in quality:
+            self.quality_daily_enable = quality['dailyEnable'].lower() == 'True'.lower()
 
     def get_config(self):
         return self.config
@@ -109,3 +118,8 @@ class Config:
         return self.db_user
     def get_db_password(self):
         return self.db_password
+
+    def get_quality_route_enable(self):
+        return self.quality_route_enable
+    def get_quality_daily_enable(self):
+        return self.quality_daily_enable

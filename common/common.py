@@ -145,3 +145,6 @@ def get_duration(duration):
 def get_yesterday_date():
     yesterday = datetime.date.today() - datetime.timedelta(days=1)
     return yesterday.strftime('%Y-%m-%d')
+def get_the_day_before_yesterday_date():
+    yesterday = datetime.date.today() - datetime.timedelta(days=2)
+    return yesterday.strftime('%Y-%m-%d')

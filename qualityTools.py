@@ -1,168 +1,73 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-import csv
 import os
 import sys
+import zipfile
 
-import psycopg2
+import requests
+
 from common import common as cm
-
+from component.email_client import EmailClient
+from component.wx_client import WxClient  # 确保 WxClient 类可用
 from config.config import Config
-from module.dataquality.daily_quality import FuelElectricConsumption
+from module.dataquality.daily_quality import DailyQuality
+from module.dataquality.route_quality import RouteQuality
 
 
-# 替换MySQL驱动为PostgreSQL驱动
-class MileageValidator:
+class Report:
     config = Config()
+    route_enable = config.quality_route_enable
+    daily_enable = config.quality_daily_enable
+    wx = WxClient()  # 初始化 WxClient
 
-    def parse_jdbc_url(self, jdbc_url):
-        # 去掉前缀 jdbc:postgresql://
-        jdbc_url = jdbc_url[len("jdbc:postgresql://"):]
+    def report(self):
+        target_date = cm.get_yesterday_date()
+        the_day_before_yesterday = cm.get_the_day_before_yesterday_date()
+        dir = "./report/{}".format(target_date)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
 
-        # 分割 host:port 和 database
-        host_port, database = jdbc_url.split('/', 1)
+        if sys.argv is not None and len(sys.argv) >= 2:
+            target_date = sys.argv[1]
 
-        # 分割 host 和 port
-        host, port = host_port.split(':', 1)
+        route_quality = RouteQuality()
+        daily_quality = DailyQuality()
 
-        return {
-            'host': host,
-            'port': int(port),
-            'database': database
-        }
+        if self.route_enable:
+            route_quality.process(the_day_before_yesterday, dir)
+        if self.daily_enable:
+            daily_quality.process(target_date, dir)
 
-    def __init__(self):
-        parsed_info = self.parse_jdbc_url(self.config.get_db_url())
+        # 生成压缩包
+        zip_path = self.zip_directory(dir, target_date)
+        # 发送压缩包到企业微信机器人
+        self.send_zip_to_server(zip_path)
 
-        # print("Host:", parsed_info['host'])
-        # print("Port:", parsed_info['port'])
-        # print("Database:", parsed_info['database'])
-        self.db = psycopg2.connect(
-            host=parsed_info['host'],
-            user=self.config.get_db_user(),
-            password=self.config.get_db_password(),
-            dbname=parsed_info['database'],
-            port=int(parsed_info['port'])
-        )
-        self.cursor = self.db.cursor()
-    def get_terminal_to_vin_mapping(self):
-        """从 t_car 表获取 terminal_id 与 car_vin 的映射"""
-        query = """
-            SELECT terminal_id, car_vin 
-            FROM t_car
-        """
-        self.cursor.execute(query)
-        return {row[0]: row[1] for row in self.cursor.fetchall()}
+    def zip_directory(self, directory, target_date):
+        zip_path = "./report/{}.zip".format(target_date)
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(directory):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, start=directory)
+                    zipf.write(file_path, arcname)
+        return zip_path
 
-    def get_daily_summary(self, date):
-        """从日统计表获取数据"""
-        query = """
-            SELECT dev_id as terminal_id, mileage_pluse as mileage
-            FROM t_o_vehicule_day
-            WHERE clct_date_ts = %s
-        """
-        self.cursor.execute(query, (date,))
-        return {row[0]: row[1] for row in self.cursor.fetchall()}
 
-    def get_route_sum(self, date):
-        """从行程表计算当日里程总和"""
-        query = """
-            SELECT 
-            terminal_id, 
-            SUM(mileage) AS route_sum,
-            CASE 
-                WHEN MAX(end_time)::date <> MIN(start_time)::date THEN 'Yes'
-                ELSE 'No'
-            END AS is_cross_day
-        FROM t_drive_route
-        WHERE (DATE(start_time) = %s OR DATE(end_time) = %s)
-        GROUP BY terminal_id
-        """
-        self.cursor.execute(query, (date,date))
-        results = self.cursor.fetchall()
-        route_sum = {}
-        for row in results:
-            terminal_id = row[0]
-            route_sum[terminal_id] = {
-                'sum': row[1],
-                'is_cross_day': row[2]
-            }
 
-        return route_sum
-
-    def validate(self, date):
-        """执行校验逻辑"""
-        daily_data = self.get_daily_summary(date)
-        route_sum = self.get_route_sum(date)
-        terminal_to_vin = self.get_terminal_to_vin_mapping()
-
-        discrepancies = []
-
-        # 检查所有车辆
-        all_vehicles = set(daily_data.keys()) | set(route_sum.keys())
-
-        for vid in all_vehicles:
-            daily_mileage = daily_data.get(vid, 0)
-            route_data = route_sum.get(vid, {'sum': 0, 'is_cross_day': 'No'})
-            route_total = route_data['sum']
-            is_cross_day = route_data['is_cross_day']
-            if daily_mileage is None:
-                daily_mileage = 0
-            if route_total is None:
-                route_total = 0
-            if is_cross_day is None:
-                is_cross_day = ''
-            # 允许1公里的误差
-            if abs(int(daily_mileage) - int(route_total)) > 1:
-                discrepancies.append({
-                    'car_vin': terminal_to_vin.get(vid, 'Unknown'),
-                    'terminal_id': vid,
-                    'daily': daily_mileage,
-                    'route_sum': route_total,
-                    'diff': abs(daily_mileage - route_total),
-                    'is_cross_day': is_cross_day
-                })
-
-        return discrepancies
-
-    def generate_report(self, discrepancies):
-        """生成校验报告"""
-        if not discrepancies:
-            print("✅ All vehicle mileage data matches")
-            return
-
-        print("🚨 Found discrepancies:")
-        for item in discrepancies:
-            print("Vehicle {}:".format(item['car_vin']))
-            print("  Daily report: {}km".format(item['daily']))
-            print("  Route sum: {}km".format(item['route_sum']))
-            print("  Difference: {}km\n".format(item['diff']))
-
-    def generate_csv_report(self, discrepancies, filename):
-        """生成CSV校验报告"""
-        if not discrepancies:
-            print("✅ No discrepancies to report")
-            return
-
-        with open(filename, mode='w') as file:
-            writer = csv.writer(file)
-            # 写入表头
-            writer.writerow(['car_vin','terminal_id', 'daily', 'route_sum', 'diff','is_cross_day'])
-            # 写入数据
-            for item in discrepancies:
-                writer.writerow([item['car_vin'],item['terminal_id'], item['daily'], item['route_sum'], item['diff'],item['is_cross_day']])
-
-        print("CSV report generated: {}".format(filename))
+    def send_zip_to_server(self, zip_path):
+        email = EmailClient()
+        email.send_zip_via_email(zip_path)
 
 
 if __name__ == "__main__":
+
     target_date = cm.get_yesterday_date()
     if len(sys.argv) >= 2:
         target_date = sys.argv[1]
 
-
-    #validator = FuelElectricConsumption()
-    #validator.generate_reports(target_date)
+    # validator = FuelElectricConsumption()
+    # validator.generate_reports(target_date)
     dir = "./report/{}".format(target_date)
     if not os.path.exists(dir):
         os.makedirs(dir)
@@ -171,7 +76,16 @@ if __name__ == "__main__":
     if sys.argv is not None and len(sys.argv) >= 2:
         target_date = sys.argv[1]
 
-    validator = MileageValidator()
-    issues = validator.validate(target_date)
-    #validator.generate_report(issues)
-    validator.generate_csv_report(issues, '{}/行程统计分析.csv'.format(dir))
+    route_quality = RouteQuality()
+    daily_quality = DailyQuality()
+
+    route_quality.process(target_date, dir)
+    daily_quality.process(target_date, dir)
+
+    report = Report()
+    # 生成压缩包
+    zip_path = report.zip_directory(dir, target_date)
+    # 上传压缩包
+    # report.upload_file(zip_path)
+    email = EmailClient()
+    email.send_zip_via_email(zip_path)
