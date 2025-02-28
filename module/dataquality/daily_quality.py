@@ -119,7 +119,7 @@ DESCENDANTS
             clct_date_ts::date AS clct_date,
             car_model_id,
             tcm.model_name,
-            SUM(power_cost) / count(1) AS total_power_cost,
+            SUM(power_cost) / count(1) AS avg_power_cost,
             SUM(mileage) / count(1) AS avg_mileage,
             SUM(engine_time) / count(1) AS avg_engine_time,
             count(1) as online_cnt
@@ -140,15 +140,15 @@ DESCENDANTS
                                    'avg_engine_time', 'online_cnt'])
         if len(df) == 0:
             return df
-        df['total_power_cost'] = df['total_power_cost'].astype(float)
+        df['avg_power_cost'] = df['avg_power_cost'].astype(float)
         df['avg_mileage'] = df['avg_mileage'].astype(float)
         df['avg_engine_time'] = df['avg_engine_time'].astype(float) / 3600.0
-        df['avg_power_consumption_per_hour'] = df.apply(
+        df['avg_power_cost_per_hour'] = df.apply(
             lambda row: row['total_power_cost'] / (row['avg_engine_time']) if row[
                                                                                   'avg_engine_time'] != 0 else 0,
             axis=1)
-        return df[['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'avg_mileage', 'avg_engine_time',
-                   'avg_power_consumption_per_hour', 'online_cnt']]
+        return df[['clct_date', 'car_model_id', 'model_name', 'avg_power_cost', 'avg_mileage', 'avg_engine_time',
+                   'avg_power_cost_per_hour', 'online_cnt']]
 
     def get_fuel_detail(self, date):
         query = """
@@ -199,6 +199,8 @@ DESCENDANTS
         df['engine_time'] = df['engine_time'].astype(float) / 3600.0
         df['oil_cost_per_100km'] = df.apply(
             lambda row: row['oil_cost'] / row['mileage'] * 100 if row['mileage'] != 0 else 0, axis=1)
+        df['avg_oil_cost_per_hour'] = df.apply(
+            lambda row: row['oil_cost'] / row['engine_time']  if row['engine_time'] != 0 else 0, axis=1)
         return df
 
     def get_electric_detail(self, date):
