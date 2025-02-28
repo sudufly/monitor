@@ -176,6 +176,8 @@ DESCENDANTS
 		)
         SELECT 
             clct_date_ts::date AS clct_date,
+            car_vin,
+            terminal_id,
             car_model_id,
             tcm.model_name,
             oil_cost,
@@ -192,7 +194,7 @@ DESCENDANTS
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
-                          columns=['clct_date', 'car_model_id', 'model_name', 'oil_cost', 'mileage', 'engine_time'])
+                          columns=['clct_date','car_vin','terminal_id', 'car_model_id', 'model_name', 'oil_cost', 'mileage', 'engine_time'])
         if len(df) == 0:
             return df
         df['oil_cost'] = df['oil_cost'].astype(float)
@@ -225,6 +227,8 @@ DESCENDANTS
         
         SELECT 
             clct_date_ts::date AS clct_date,
+            car_vin,
+            terminal_id,
             car_model_id,
             tcm.model_name,
             power_cost,
@@ -241,7 +245,7 @@ DESCENDANTS
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
-                          columns=['clct_date', 'car_model_id', 'model_name', 'power_cost', 'mileage', 'engine_time'])
+                          columns=['clct_date', 'car_vin','terminal_id','car_model_id', 'model_name', 'power_cost', 'mileage', 'engine_time'])
         if len(df) == 0:
             return df
         df['power_cost'] = df['power_cost'].astype(float)
@@ -283,7 +287,7 @@ DESCENDANTS
             self.add_bar_chart(u"平均里程", dfs['electric_avg'], ws_electric_avg, 5,'K31')
             self.add_bar_chart(u"平均时长", dfs['electric_avg'], ws_electric_avg, 6,'K45')
 
-        print("Excel report generated: {}".format(filename))
+        print(u"Excel report generated: {}".format(filename))
 
     def add_bar_chart(self, title, dfs, sheet, c1,column):
         chart = BarChart()
@@ -300,7 +304,7 @@ DESCENDANTS
         sheet.add_chart(chart, column)
 
     def generate_reports(self, date):
-        dir = "./report"
+        dir = "./report/{}".format(date)
         if not os.path.exists(dir):
             os.makedirs(dir)
 
@@ -316,7 +320,7 @@ DESCENDANTS
             'electric_detail': electric_detail_df
         }
 
-        self.write_to_excel(dfs, './report/consumption_report_{}.xlsx'.format(date.replace('-', '')))
+        self.write_to_excel(dfs, u'{}/日统计{}.xlsx'.format(dir,date.replace('-', '')))
 
 
 if __name__ == "__main__":
