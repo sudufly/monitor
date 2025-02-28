@@ -56,8 +56,9 @@ class Report:
 
 
     def send_zip_to_server(self, zip_path):
-        email = EmailClient()
-        email.send_zip_via_email(zip_path)
+        i = 0
+        # email = EmailClient()
+        # email.send_zip_via_email(zip_path)
 
 
 if __name__ == "__main__":
@@ -82,10 +83,10 @@ if __name__ == "__main__":
     route_quality.process(target_date, dir)
     daily_quality.process(target_date, dir)
 
-    report = Report()
-    # 生成压缩包
-    zip_path = report.zip_directory(dir, target_date)
-    # 上传压缩包
-    # report.upload_file(zip_path)
-    email = EmailClient()
-    email.send_zip_via_email(zip_path)
+    # report = Report()
+    # # 生成压缩包
+    # zip_path = report.zip_directory(dir, target_date)
+    # # 上传压缩包
+    # # report.upload_file(zip_path)
+    # email = EmailClient()
+    # email.send_zip_via_email(zip_path)

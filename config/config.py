@@ -32,46 +32,47 @@ class Config:
         self.yarn_url = yarn['rm_url']
         self.project = self.config['project']['project'].encode('utf-8')
         self.bootstrap_servers = self.config['kafka']['bootstrapServers'].encode('utf-8')
-        monitor = self.config['monitor']
+        if self.config.has_section('monitor'):
+            monitor = self.config['monitor']
+            self.warning_offsets = int(monitor['warningOffsets'])
+            self.warning_interval = int(monitor['warnInterval'])
+            ids = monitor['blackGroupIds']
+            if len(ids) > 0:
+                self.black_groupid_set = set(ids.split(','))
+                self.black_groupid_set.discard('')
 
-        self.warning_offsets = int(monitor['warningOffsets'])
-        self.warning_interval = int(monitor['warnInterval'])
-        ids = monitor['blackGroupIds']
-        if len(ids) > 0:
-            self.black_groupid_set = set(ids.split(','))
-            self.black_groupid_set.discard('')
+            names = monitor['yarnAppNames'].encode('utf-8')
 
-        names = monitor['yarnAppNames'].encode('utf-8')
+            if len(names) > 0:
+                self.yarn_app_name_set = set(names.split(','))
+                self.yarn_app_name_set.discard('')
 
-        if len(names) > 0:
-            self.yarn_app_name_set = set(names.split(','))
-            self.yarn_app_name_set.discard('')
+            if 'kafkaEnable' in monitor:
+                self.kafka_enable = monitor['kafkaEnable'].lower() == 'True'.lower()
+            if 'yarnEnable' in monitor:
+                self.yarn_enable = monitor['yarnEnable'].lower() == 'True'.lower()
 
-        if 'kafkaEnable' in monitor:
-            self.kafka_enable = monitor['kafkaEnable'].lower() == 'True'.lower()
-        if 'yarnEnable' in monitor:
-            self.yarn_enable = monitor['yarnEnable'].lower() == 'True'.lower()
+            self.eureka_url = monitor.get('springEnable')
+            self.eureka_url = monitor.get('eurekaUrl')
+            spring_app_names = monitor.get('springAppNames', '').encode('utf-8')
+            self.spring_enable = monitor.getboolean('springEnable')
+            if len(spring_app_names) > 0:
+                self.spring_app_name_set = set(spring_app_names.split(','))
+                self.spring_app_name_set.discard('')
 
-        self.eureka_url = monitor.get('springEnable')
-        self.eureka_url = monitor.get('eurekaUrl')
-        spring_app_names = monitor.get('springAppNames', '').encode('utf-8')
-        self.spring_enable = monitor.getboolean('springEnable')
-        if len(spring_app_names) > 0:
-            self.spring_app_name_set = set(spring_app_names.split(','))
-            self.spring_app_name_set.discard('')
+        if self.config.has_section('db'):
+            db = self.config['db']
+            if db is not None:
+                self.db_url = db.get('url','')
+                self.db_user = db.get('user','')
+                self.db_password = db.get('password','')
 
-        db = self.config['db']
-        if db is not None:
-
-            self.db_url = db.get('url','')
-            self.db_user = db.get('user','')
-            self.db_password = db.get('password','')
-
-        quality = self.config['quality']
-        if 'routeEnable' in quality:
-            self.quality_route_enable = quality['routeEnable'].lower() == 'True'.lower()
-        if 'dailyEnable' in quality:
-            self.quality_daily_enable = quality['dailyEnable'].lower() == 'True'.lower()
+        if self.config.has_section('quality'):
+            quality = self.config['quality']
+            if 'routeEnable' in quality:
+                self.quality_route_enable = quality['routeEnable'].lower() == 'True'.lower()
+            if 'dailyEnable' in quality:
+                self.quality_daily_enable = quality['dailyEnable'].lower() == 'True'.lower()
 
     def get_config(self):
         return self.config
