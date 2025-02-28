@@ -57,7 +57,7 @@ class MileageValidator:
     def get_daily_summary(self, date):
         """从日统计表获取数据"""
         query = """
-            SELECT dev_id as terminal_id, mileage 
+            SELECT dev_id as terminal_id, mileage_pluse as mileage
             FROM t_o_vehicule_day
             WHERE clct_date_ts = %s
         """
@@ -161,17 +161,17 @@ if __name__ == "__main__":
         target_date = sys.argv[1]
 
 
-    validator = FuelElectricConsumption()
-    validator.generate_reports(target_date)
-    # dir = "./report"
-    # if not os.path.exists(dir):
-    #     os.makedirs(dir)
-    # target_date = cm.get_yesterday_date()
-    #
-    # if sys.argv is not None and len(sys.argv) >= 2:
-    #     target_date = sys.argv[1]
-    #
-    # validator = MileageValidator()
-    # issues = validator.validate(target_date)
-    # #validator.generate_report(issues)
-    # validator.generate_csv_report(issues, './report/' + target_date + '.csv')
+    #validator = FuelElectricConsumption()
+    #validator.generate_reports(target_date)
+    dir = "./report/{}".format(target_date)
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    target_date = cm.get_yesterday_date()
+
+    if sys.argv is not None and len(sys.argv) >= 2:
+        target_date = sys.argv[1]
+
+    validator = MileageValidator()
+    issues = validator.validate(target_date)
+    #validator.generate_report(issues)
+    validator.generate_csv_report(issues, '{}/行程统计分析.csv'.format(dir))
