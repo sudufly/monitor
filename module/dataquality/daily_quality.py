@@ -274,7 +274,7 @@ DESCENDANTS
             self.add_bar_chart(u"平均时长", dfs['fuel_avg'], ws_fuel_avg, 6, 'K45')
 
             # 添加柱状图到 Electric Avg Consumption
-            ws_electric_avg = writer.sheets[elec_detail]
+            ws_electric_avg = writer.sheets[elec]
 
             self.add_bar_chart(u"平均电耗/小时", dfs['electric_avg'], ws_electric_avg, 7, "K2")
             self.add_bar_chart(u"平均电耗", dfs['electric_avg'], ws_electric_avg, 4, 'K16')
