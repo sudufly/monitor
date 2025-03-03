@@ -24,6 +24,7 @@ pip install urllib3==1.10.2
 yum install -y postgresql-devel
 yum install -y python-devel
 pip install psycopg2==2.8.6
+pip install --ignore-installe psycopg2==2.8.6
 
 ##
 pip install pandas -i "https://pypi.doubanio.com/simple/"

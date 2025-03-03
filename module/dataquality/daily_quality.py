@@ -85,6 +85,8 @@ DESCENDANTS
                           columns=['clct_date', 'car_model_id', 'model_name', 'avg_oil_cost', 'avg_mileage',
                                    'avg_engine_time', 'online_cnt'])
 
+        if len(df) == 0:
+            return df
         df['avg_oil_cost'] = df['avg_oil_cost'].astype(float)
         df['avg_mileage'] = df['avg_mileage'].astype(float)
         df['avg_engine_time'] = df['avg_engine_time'].astype(float) / 3600.0

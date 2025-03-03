@@ -240,15 +240,16 @@ class MonitorKafkaInfra(object):
             consumer_offsets_dict = {}
 
             # {TopicPartition(topic=u'online-events', partition=48): 314061}
+            [consumer_offsets_dict.update({key[0]: key[1]})
+             for key in self.get_kafka_consumer_offsets(self.kafka_admin_client).items()
+             if (key[0][0] not in gid_set)
+             ]
             # kafka最大偏移量
             topic_offsets_dict, _ = self.get_highwater_offsets(self.kafka_admin_client,
                                                                             None)
             # {(consumer_group, topic, partition): consumer_offset}
 
-            [consumer_offsets_dict.update({key[0]: key[1]})
-             for key in self.get_kafka_consumer_offsets(self.kafka_admin_client).items()
-             if (key[0][0] not in gid_set)
-             ]
+
             for e in consumer_offsets_dict.items():
                 key, offset = e[0], e[1]
                 gid = key[0]

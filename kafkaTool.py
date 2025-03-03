@@ -218,5 +218,5 @@ class KafkaTool(object):
 
 if __name__ == "__main__":
     kafkaTool = KafkaTool()
-    # kafkaTool.loop()
-    kafkaTool.delete_consumer_group(sys.argv[1])
+    kafkaTool.loop()
+    # kafkaTool.delete_consumer_group(sys.argv[1])
