@@ -45,4 +45,4 @@ pip install et-xmlfile==1.0.1
 pip install openpyxl==2.6.4
 
 
- pip install schedule
+ pip install schedule==0.6.0

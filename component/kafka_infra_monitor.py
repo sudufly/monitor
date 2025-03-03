@@ -3,12 +3,13 @@ import time
 import traceback
 from collections import defaultdict
 
-from kafka import KafkaAdminClient, TopicPartition, errors
+from kafka import KafkaAdminClient, TopicPartition, errors, KafkaConsumer
 from kafka.errors import kafka_errors
 from kafka.protocol.offset import OffsetResetStrategy, OffsetRequest, OffsetResponse
 from urllib3.packages.six import iteritems
 
 from common import common as cm
+from component.kafka_tools import KafkaUtil
 from config.config import Config
 from wx_client import WxClient
 
@@ -23,13 +24,14 @@ class MonitorKafkaInfra(object):
     kafka_admin_client = None
     config = Config()
     wx = WxClient()
-
+    kafka_util = KafkaUtil()
     def __init__(self):
         bootstrapServers = self.config.get_bootstrap_servers()
-        print bootstrapServers
-        self.kafka_admin_client = KafkaAdminClient(bootstrap_servers=bootstrapServers)
 
-    @classmethod
+        self.kafka_admin_client = KafkaAdminClient(bootstrap_servers=bootstrapServers)
+        print bootstrapServers
+
+
     def get_highwater_offsets(self, kafka_admin_client, topics=None):
         """Fetch highwater offsets for topic_partitions in the Kafka cluster.
         Do this for all partitions in the cluster because even if it has no
@@ -89,7 +91,7 @@ class MonitorKafkaInfra(object):
 
         return highwater_offsets, topic_partitions_without_a_leader
 
-    @classmethod
+
     def _process_highwater_offsets(self, response):
         """Convert OffsetFetchResponse to a dictionary of offsets.
 
@@ -121,7 +123,31 @@ class MonitorKafkaInfra(object):
         assert topic_partitions_without_a_leader.isdisjoint(highwater_offsets)
         return highwater_offsets, topic_partitions_without_a_leader
 
-    @classmethod
+    def get_kafka_consumer_offsets_old(self):
+        """Fetch Consumer Group offsets from Kafka using KafkaConsumer.
+        Arguments:
+            bootstrap_servers (list): List of Kafka broker addresses.
+            consumer_groups (dict): The consumer groups, topics, and partitions
+                for which you want to fetch offsets. If consumer_groups is
+                None, will fetch offsets for all consumer_groups.
+
+        Returns:
+            dict: {(consumer_group, topic, partition): consumer_offset} where
+                consumer_offset is an integer.
+        """
+        consumer_offsets = {}
+        ids = self.kafka_admin_client.list_consumer_groups()
+
+        for id in ids:
+            consumer_offset_map = self.kafka_util.get_consumer_offsets(id[0])
+            for (topic, partition), consumer_offset in consumer_offset_map.items():
+                consumer_group = id[0]
+                key = (consumer_group, topic, partition)
+                consumer_offsets[key] = consumer_offset.offset
+
+
+        return consumer_offsets
+
     def get_kafka_consumer_offsets(self, kafka_admin_client, consumer_groups=None):
         """Fetch Consumer Group offsets from Kafka.
         Also fetch consumer_groups, topics, and partitions if not
@@ -142,26 +168,28 @@ class MonitorKafkaInfra(object):
         if consumer_groups is None:  # None signals to fetch all from Kafka
             if old_broker:
                 # raise BadKafkaConsumerConfiguration(WARNING_BROKER_LESS_THAN_0_10_2)
-                print "WARNING_BROKER_LESS_THAN_0_10_2"
-            for broker in kafka_admin_client._client.cluster.brokers():
-                for consumer_group, group_type in kafka_admin_client.list_consumer_groups(broker_ids=[broker.nodeId]):
-                    # consumer groups from Kafka < 0.9 that store their offset
-                    # in Kafka don't use Kafka for group-coordination so
-                    # group_type is empty
-                    if group_type in ('consumer', ''):
-                        # Typically the consumer group offset fetch sequence is:
-                        # 1. For each broker in the cluster, send a ListGroupsRequest
-                        # 2. For each consumer group, send a FindGroupCoordinatorRequest
-                        # 3. Query the group coordinator for the consumer's offsets.
-                        # However, since Kafka brokers only include consumer
-                        # groups in their ListGroupsResponse when they are the
-                        # coordinator for that group, we can skip the
-                        # FindGroupCoordinatorRequest.
-                        this_group_offsets = kafka_admin_client.list_consumer_group_offsets(
-                            group_id=consumer_group, group_coordinator_id=broker.nodeId)
-                        for (topic, partition), (offset, metadata) in iteritems(this_group_offsets):
-                            key = (consumer_group, topic, partition)
-                            consumer_offsets[key] = offset
+                # print "WARNING_BROKER_LESS_THAN_0_10_2"
+                return self.get_kafka_consumer_offsets_old()
+            else:
+                for broker in kafka_admin_client._client.cluster.brokers():
+                    for consumer_group, group_type in kafka_admin_client.list_consumer_groups(broker_ids=[broker.nodeId]):
+                        # consumer groups from Kafka < 0.9 that store their offset
+                        # in Kafka don't use Kafka for group-coordination so
+                        # group_type is empty
+                        if group_type in ('consumer', ''):
+                            # Typically the consumer group offset fetch sequence is:
+                            # 1. For each broker in the cluster, send a ListGroupsRequest
+                            # 2. For each consumer group, send a FindGroupCoordinatorRequest
+                            # 3. Query the group coordinator for the consumer's offsets.
+                            # However, since Kafka brokers only include consumer
+                            # groups in their ListGroupsResponse when they are the
+                            # coordinator for that group, we can skip the
+                            # FindGroupCoordinatorRequest.
+                            this_group_offsets = kafka_admin_client.list_consumer_group_offsets(
+                                group_id=consumer_group, group_coordinator_id=broker.nodeId)
+                            for (topic, partition), (offset, metadata) in iteritems(this_group_offsets):
+                                key = (consumer_group, topic, partition)
+                                consumer_offsets[key] = offset
         else:
             for consumer_group, topics in iteritems(consumer_groups):
                 if topics is None:
@@ -207,16 +235,18 @@ class MonitorKafkaInfra(object):
             lag_map = {}
             cur_time = time.time()
 
+
             # {TopicPartition(topic=u'online-events', partition=49): (314735, u'illidan-c')}
             consumer_offsets_dict = {}
 
             # {TopicPartition(topic=u'online-events', partition=48): 314061}
             # kafka最大偏移量
-            topic_offsets_dict, _ = MonitorKafkaInfra.get_highwater_offsets(self.kafka_admin_client,
+            topic_offsets_dict, _ = self.get_highwater_offsets(self.kafka_admin_client,
                                                                             None)
             # {(consumer_group, topic, partition): consumer_offset}
+
             [consumer_offsets_dict.update({key[0]: key[1]})
-             for key in MonitorKafkaInfra.get_kafka_consumer_offsets(self.kafka_admin_client).items()
+             for key in self.get_kafka_consumer_offsets(self.kafka_admin_client).items()
              if (key[0][0] not in gid_set)
              ]
             for e in consumer_offsets_dict.items():

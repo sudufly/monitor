@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # coding:utf-8
+import sys
 from collections import OrderedDict
 
 from kafka import KafkaAdminClient
@@ -199,6 +200,23 @@ class KafkaTool(object):
             self.level = 0
 
 
+
+    def delete_consumer_group(self, group_id):
+        """删除指定的 Kafka 消费组"""
+        try:
+            # 调用 KafkaAdminClient 的 delete_consumer_groups 方法
+            delete_result = self.kafka_admin_client.delete_consumer_groups(
+                group_ids=[group_id]            )
+            for group, error in delete_result:
+                if error is None:
+                    print("消费组 {} 删除成功".format(group))
+                else:
+                    print("删除失败: {}".format(error))
+        except Exception as e:
+            print("删除消费组时发生错误: {}".format(str(e)))
+
+
 if __name__ == "__main__":
     kafkaTool = KafkaTool()
-    kafkaTool.loop()
+    # kafkaTool.loop()
+    kafkaTool.delete_consumer_group(sys.argv[1])

@@ -32,19 +32,20 @@ class RouteQuality:
         }
 
     def __init__(self):
-        parsed_info = self.parse_jdbc_url(self.config.get_db_url())
+        if self.config.get_quality_route_enable():
+            parsed_info = self.parse_jdbc_url(self.config.get_db_url())
 
-        # print("Host:", parsed_info['host'])
-        # print("Port:", parsed_info['port'])
-        # print("Database:", parsed_info['database'])
-        self.db = psycopg2.connect(
-            host=parsed_info['host'],
-            user=self.config.get_db_user(),
-            password=self.config.get_db_password(),
-            dbname=parsed_info['database'],
-            port=int(parsed_info['port'])
-        )
-        self.cursor = self.db.cursor()
+            # print("Host:", parsed_info['host'])
+            # print("Port:", parsed_info['port'])
+            # print("Database:", parsed_info['database'])
+            self.db = psycopg2.connect(
+                host=parsed_info['host'],
+                user=self.config.get_db_user(),
+                password=self.config.get_db_password(),
+                dbname=parsed_info['database'],
+                port=int(parsed_info['port'])
+            )
+            self.cursor = self.db.cursor()
     def get_terminal_to_vin_mapping(self):
         """从 t_car 表获取 terminal_id 与 car_vin 的映射"""
         query = """

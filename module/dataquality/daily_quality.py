@@ -28,16 +28,17 @@ class DailyQuality:
         }
 
     def __init__(self):
-        parsed_info = self.parse_jdbc_url(self.config.get_db_url())
+        if self.config.quality_daily_enable:
+            parsed_info = self.parse_jdbc_url(self.config.get_db_url())
 
-        self.db = psycopg2.connect(
-            host=parsed_info['host'],
-            user=self.config.get_db_user(),
-            password=self.config.get_db_password(),
-            dbname=parsed_info['database'],
-            port=int(parsed_info['port'])
-        )
-        self.cursor = self.db.cursor()
+            self.db = psycopg2.connect(
+                host=parsed_info['host'],
+                user=self.config.get_db_user(),
+                password=self.config.get_db_password(),
+                dbname=parsed_info['database'],
+                port=int(parsed_info['port'])
+            )
+            self.cursor = self.db.cursor()
 
     def get_fuel_consumption(self, date):
         query = """

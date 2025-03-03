@@ -219,15 +219,17 @@ class KafkaUtil:
         else:
             return self.client.list_consumer_group_offsets(groupId)
 
-
+    gid_consumer_map = {}
 
     def get_consumer_offsets(self, group_id):
-        consumer = KafkaConsumer(
-            bootstrap_servers=self.bootstrap_servers,
-            group_id=group_id,
-            enable_auto_commit=False
-        )
-
+        if not self.gid_consumer_map.has_key(group_id):
+            consumer = KafkaConsumer(
+                bootstrap_servers=self.bootstrap_servers,
+                group_id=group_id,
+                enable_auto_commit=False
+            )
+            self.gid_consumer_map[group_id] = consumer
+        consumer = self.gid_consumer_map[group_id]
         # 获取所有主题和分区
         topics = consumer.topics()
         partitions_for_topics = {}
@@ -242,7 +244,7 @@ class KafkaUtil:
                 if committed_offset is not None:
                     offsets[tp] = OffsetAndMetadata(committed_offset,None)
 
-        consumer.close()
+        # consumer.close()
         return offsets
 
 # if __name__ == "__main__":
