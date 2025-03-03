@@ -148,7 +148,7 @@ DESCENDANTS
         df['avg_mileage'] = df['avg_mileage'].astype(float)
         df['avg_engine_time'] = df['avg_engine_time'].astype(float) / 3600.0
         df['avg_power_cost_per_hour'] = df.apply(
-            lambda row: row['total_power_cost'] / (row['avg_engine_time']) if row[
+            lambda row: row['avg_power_cost'] / (row['avg_engine_time']) if row[
                                                                                   'avg_engine_time'] != 0 else 0,
             axis=1)
         return df[['clct_date', 'car_model_id', 'model_name', 'avg_power_cost', 'avg_mileage', 'avg_engine_time',
