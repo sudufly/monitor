@@ -140,7 +140,7 @@ DESCENDANTS
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
-                          columns=['clct_date', 'car_model_id', 'model_name', 'total_power_cost', 'avg_mileage',
+                          columns=['clct_date', 'car_model_id', 'model_name', 'avg_power_cost', 'avg_mileage',
                                    'avg_engine_time', 'online_cnt'])
         if len(df) == 0:
             return df
