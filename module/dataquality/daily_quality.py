@@ -75,7 +75,7 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone =8 and online_state = 1
+            tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone =8 and (online_state = 1 or online_state is null)
         GROUP BY 
             clct_date_ts::date, car_model_id, tcm.model_name;
         """
@@ -84,6 +84,7 @@ DESCENDANTS
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_model_id', 'model_name', 'avg_oil_cost', 'avg_mileage',
                                    'avg_engine_time', 'online_cnt'])
+
 
         if len(df) == 0:
             return df
@@ -133,7 +134,7 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone =8 and online_state = 1
+            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone =8 and (online_state = 1 or online_state is null)
         GROUP BY 
             clct_date_ts::date, car_model_id, tcm.model_name;
         """
@@ -189,7 +190,7 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone =8 and online_state = 1;
+            tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone =8 and (online_state = 1 or online_state is null);
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
@@ -243,7 +244,7 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone =8 and online_state = 1 ;
+            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone =8 and (online_state = 1 or online_state is null) ;
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
