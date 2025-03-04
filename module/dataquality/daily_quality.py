@@ -459,12 +459,21 @@ class DailyQuality:
 
     def generate_reports(self, date, dir):
 
-        fuel_avg_df = self.get_fuel_consumption(date)
-        electric_avg_df = self.get_electric_consumption(date)
-        fuel_detail_df = self.get_fuel_detail(date)
-        electric_detail_df = self.get_electric_detail(date)
-        recently_fuel, fuel_msgs = self.get_recently_fuel(date)
-        recently_elec, elec_msgs= self.get_recently_elec(date)
+        fuel_avg_df = None
+        electric_avg_df = None
+        fuel_detail_df = None
+        electric_detail_df = None
+        recently_fuel, fuel_msgs = None,[]
+        recently_elec, elec_msgs= None,[]
+
+        if self.config.get_quality_fuel_enable():
+            fuel_avg_df = self.get_fuel_consumption(date)
+            fuel_detail_df = self.get_fuel_detail(date)
+            recently_fuel, fuel_msgs = self.get_recently_fuel(date)
+        if self.config.get_quality_elec_enable():
+            electric_avg_df = self.get_electric_consumption(date)
+            electric_detail_df = self.get_electric_detail(date)
+            recently_elec, elec_msgs= self.get_recently_elec(date)
 
         msgs = []
         idx = 1
