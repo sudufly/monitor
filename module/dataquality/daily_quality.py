@@ -300,7 +300,7 @@ class DailyQuality:
         """
         self.cursor.execute(query, (date, date,))
         df = pd.DataFrame(self.cursor.fetchall(),
-                          columns=['clct_date', 'total_power_cost', 'total_mileage'])
+                          columns=['clct_date', 'total_power_cost', 'total_mileage','record'])
         msgs = []
         if len(df) == 0:
             msg = '{}日新能源统计缺失'.format( date)
