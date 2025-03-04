@@ -265,7 +265,7 @@ class DailyQuality:
 
 
             if oil_change < self.threshold_dec or oil_change > self.threshold_inc:
-                value = Decimal(record_change)
+                value = Decimal(oil_change)
                 formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
                 msg = "传统车油耗异常,波动 {:.2f}%\n{}\n{}" \
                     .format(formatted_value
