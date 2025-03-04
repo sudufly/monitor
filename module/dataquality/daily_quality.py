@@ -401,8 +401,8 @@ class DailyQuality:
             'recently_fuel': recently_fuel,
             'recently_elec': recently_elec,
         }
-
-        self.write_to_excel(dfs, u'{}/日统计{}.xlsx'.format(dir, date))
+        path =  u'{}/{}日统计{}.xlsx'.format(dir, self.config.get_project().decode('utf-8'),date)
+        self.write_to_excel(dfs, path)
 
     def process(self, target_date, dir):
         self.generate_reports(target_date, dir)
