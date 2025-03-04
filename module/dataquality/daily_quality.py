@@ -204,12 +204,12 @@ class DailyQuality:
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 1 AND clct_date_ts >= cast(%s as timestamp) - interval '6 days' AND clct_date_ts <= %s AND  {}
+            tcm.energy_type = 1 AND clct_date_ts >= cast(%s as timestamp) - interval '6 days' AND clct_date_ts <= %s
         GROUP BY 
             clct_date_ts::date
         ORDER BY 
             clct_date_ts::date;
-        """.format(self.cond)
+        """
         self.cursor.execute(query, (date, date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'total_oil_cost', 'total_mileage','record'])
@@ -384,12 +384,12 @@ class DailyQuality:
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts BETWEEN %s - interval '6 days' AND %s AND time_zone =8 
+            tcm.energy_type = 2 AND clct_date_ts BETWEEN %s - interval '6 days' AND %s AND time_zone =8 and {}
         GROUP BY 
             clct_date_ts::date
         ORDER BY 
             clct_date_ts::date;
-        """
+        """.format(self.cond)
         self.cursor.execute(query, (date, date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'total_power_cost', 'total_mileage'])
