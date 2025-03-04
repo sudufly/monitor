@@ -18,6 +18,8 @@ class DailyQuality:
     enable_elec = config.get_quality_elec_enable()
     enable_mix = False
     wx = WxClient()
+    threshold_dec = config.get_quality_threshold_dec()
+    threshold_inc = config.get_quality_threshold_inc()
 
     def parse_jdbc_url(self, jdbc_url):
         # 去掉前缀 jdbc:postgresql://
@@ -230,7 +232,7 @@ class DailyQuality:
         value = Decimal(mileage_change)
         formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
 
-        if mileage_change < -10 or mileage_change > 50:
+        if mileage_change < self.threshold_dec or mileage_change > self.threshold_inc:
             msg = "里程异常,波动范围{:.2f}%\n{}\n{}" \
                 .format( formatted_value
                         , "日期:{},总里程:{}km".format(df.loc[6, 'clct_date'], df.loc[6, 'total_mileage'])
@@ -240,7 +242,7 @@ class DailyQuality:
 
         value = Decimal(mileage_change)
         formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
-        if oil_change < -10 or oil_change > 50:
+        if oil_change < self.threshold_dec or oil_change > self.threshold_inc:
             msg = "{}. 油耗异常,波动范围{:.2f}%\n{}\n{}" \
                 .format(formatted_value
                         , "日期:{},总油耗:{}L".format(df.loc[6, 'clct_date'], df.loc[6, 'total_oil_cost'])
@@ -295,7 +297,7 @@ class DailyQuality:
         value = Decimal(mileage_change)
         formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
 
-        if mileage_change < -10 or mileage_change > 50:
+        if mileage_change < self.threshold_dec or mileage_change > self.threshold_inc:
             msg = "里程异常,波动范围{:.2f}%\n{}\n{}" \
                 .format(formatted_value
                         , "日期:{},总里程:{}km".format(df.loc[6, 'clct_date'], df.loc[6, 'total_mileage'])
@@ -304,7 +306,7 @@ class DailyQuality:
 
         value = Decimal(mileage_change)
         formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
-        if power_change < -10 or power_change > 50:
+        if power_change < self.threshold_dec or power_change > self.threshold_inc:
             msg = "电耗异常,波动范围{:.2f}%\n{}\n{}" \
                 .format( formatted_value
                         , "日期:{},总电耗:{}kw".format(df.loc[6, 'clct_date'], df.loc[6, 'total_power_cost'])
@@ -470,7 +472,7 @@ class DailyQuality:
             for m in elec_msgs:
                 msgs.append('{}. {}'.format(idx,m))
                 idx += 1
-
+        print msgs
         if len(msgs) > 0:
             self.wx.send(alarm(self.config.project, self.service, date,
                                '日统计异常', '\n' + '\n'.join(msgs)))

@@ -26,6 +26,8 @@ class Config:
     quality_daily_enable = False
     quality_fuel_enable = True
     quality_elec_enable = False
+    quality_threshold_dec = -10
+    quality_threshold_inc = 50
     def __init__(self, debug=False):
 
         self.config = cm.getConfig(debug)
@@ -78,6 +80,10 @@ class Config:
                 self.quality_fuel_enable = quality['fuelEnable'].lower() == 'True'.lower()
             if 'elecEnable' in quality:
                 self.quality_elec_enable = quality['elecEnable'].lower() == 'True'.lower()
+            if 'threshold' in quality:
+                split = quality['threshold'].split(',')
+                self.quality_threshold_dec = int(split[0])
+                self.quality_threshold_inc = int(split[1])
     def get_config(self):
         return self.config
 
@@ -133,3 +139,8 @@ class Config:
         return self.quality_fuel_enable
     def get_quality_elec_enable(self):
         return self.quality_elec_enable
+
+    def get_quality_threshold_dec(self):
+        return self.quality_threshold_dec
+    def get_quality_threshold_inc(self):
+        return self.quality_threshold_inc
