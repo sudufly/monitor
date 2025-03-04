@@ -242,7 +242,7 @@ class DailyQuality:
                 msgs.append(msg)
 
 
-            value = Decimal(mileage_change)
+            value = Decimal(oil_change)
             formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
             if oil_change < self.threshold_dec or oil_change > self.threshold_inc:
                 msg = "{}. 油耗异常,波动范围{:.2f}%\n{}\n{}" \
@@ -308,7 +308,7 @@ class DailyQuality:
                         , "日期:{},总里程:{}km".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_mileage']))
             msgs.append(msg)
 
-        value = Decimal(mileage_change)
+        value = Decimal(power_change)
         formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
         if power_change < self.threshold_dec or power_change > self.threshold_inc:
             msg = "电耗异常,波动范围{:.2f}%\n{}\n{}" \
