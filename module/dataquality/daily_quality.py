@@ -21,6 +21,10 @@ class DailyQuality:
     threshold_dec = config.get_quality_threshold_dec()
     threshold_inc = config.get_quality_threshold_inc()
 
+    cond = '(1 = 1)'
+    if config.get_quality_has_online_state():
+        cond = '(online_state = 1 or online_state is null)'
+
     def parse_jdbc_url(self, jdbc_url):
         # 去掉前缀 jdbc:postgresql://
         jdbc_url = jdbc_url[len("jdbc:postgresql://"):]
@@ -89,10 +93,10 @@ class DailyQuality:
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 1 AND clct_date_ts = %s AND time_zone =8 and (online_state = 1 or online_state is null)
+            tcm.energy_type = 1 AND clct_date_ts = %s AND time_zone =8 and {}
         GROUP BY 
             clct_date_ts::date, car_model_id, tcm.model_name;
-        """
+        """.format(self.cond)
 
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
@@ -130,11 +134,11 @@ class DailyQuality:
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts = %s AND time_zone =8 and (online_state = 1 or online_state is null)
+            tcm.energy_type = 2 AND clct_date_ts = %s AND time_zone =8 and (%s)
         GROUP BY 
             clct_date_ts::date, car_model_id, tcm.model_name;
         """
-        self.cursor.execute(query, (date,))
+        self.cursor.execute(query, (date,self.cond))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_model_id', 'model_name', 'avg_power_cost', 'avg_mileage',
                                    'avg_engine_time', 'online_cnt'])
@@ -168,8 +172,8 @@ class DailyQuality:
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 1 AND clct_date_ts = %s AND time_zone =8 and (online_state = 1 or online_state is null);
-        """
+            tcm.energy_type = 1 AND clct_date_ts = %s AND time_zone =8 and {};
+        """.format(self.cond)
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_vin', 'terminal_id', 'car_model_id', 'model_name', 'oil_cost',
@@ -199,12 +203,12 @@ class DailyQuality:
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 1 AND clct_date_ts >= cast(%s as timestamp) - interval '6 days' AND clct_date_ts <= %s AND time_zone =8 and (online_state = 1 or online_state is null)
+            tcm.energy_type = 1 AND clct_date_ts >= cast(%s as timestamp) - interval '6 days' AND clct_date_ts <= %s AND  {}
         GROUP BY 
             clct_date_ts::date
         ORDER BY 
             clct_date_ts::date;
-        """
+        """.format(self.cond)
         self.cursor.execute(query, (date, date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'total_oil_cost', 'total_mileage'])
@@ -269,12 +273,12 @@ class DailyQuality:
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts >= cast(%s as timestamp) - interval '6 days' AND clct_date_ts <= %s AND time_zone =8 and (online_state = 1 or online_state is null)
+            tcm.energy_type = 2 AND clct_date_ts >= cast(%s as timestamp) - interval '6 days' AND clct_date_ts <= %s AND {}
         GROUP BY 
             clct_date_ts::date
         ORDER BY 
             clct_date_ts::date;
-        """
+        """.format(self.cond)
         self.cursor.execute(query, (date, date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'total_power_cost', 'total_mileage'])
@@ -351,12 +355,12 @@ class DailyQuality:
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts BETWEEN %s - interval '6 days' AND %s AND time_zone =8 and (online_state = 1 or online_state is null)
+            tcm.energy_type = 2 AND clct_date_ts BETWEEN %s - interval '6 days' AND %s AND time_zone =8 and {}
         GROUP BY 
             clct_date_ts::date
         ORDER BY 
             clct_date_ts::date;
-        """
+        """.format(self.cond)
         self.cursor.execute(query, (date, date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'total_power_cost', 'total_mileage'])
@@ -385,8 +389,8 @@ class DailyQuality:
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone = 8 and (online_state = 1 or online_state is null) ;
-        """
+            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone = 8 and {} ;
+        """.format(self.cond)
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_vin', 'terminal_id', 'car_model_id', 'model_name', 'power_cost',

@@ -28,6 +28,7 @@ class Config:
     quality_elec_enable = False
     quality_threshold_dec = -10
     quality_threshold_inc = 50
+    quality_has_online_state = True
     def __init__(self, debug=False):
 
         self.config = cm.getConfig(debug)
@@ -84,6 +85,8 @@ class Config:
                 split = quality['threshold'].split(',')
                 self.quality_threshold_dec = int(split[0])
                 self.quality_threshold_inc = int(split[1])
+            if 'hasOnlineState' in quality:
+                self.quality_has_online_state = quality['hasOnlineState'].lower() == 'True'.lower()
     def get_config(self):
         return self.config
 
@@ -144,3 +147,5 @@ class Config:
         return self.quality_threshold_dec
     def get_quality_threshold_inc(self):
         return self.quality_threshold_inc
+    def get_quality_has_online_state(self):
+        return self.quality_has_online_state
