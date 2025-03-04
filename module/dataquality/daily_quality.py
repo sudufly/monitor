@@ -245,7 +245,7 @@ class DailyQuality:
             value = Decimal(oil_change)
             formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
             if oil_change < self.threshold_dec or oil_change > self.threshold_inc:
-                msg = "{}. 油耗异常,波动范围{:.2f}%\n{}\n{}" \
+                msg = "油耗异常,波动范围{:.2f}%\n{}\n{}" \
                     .format(formatted_value
                             , "日期:{},总油耗:{}L".format(df.loc[6, 'clct_date'], df.loc[6, 'total_oil_cost'])
                             , "日期:{},总油耗:{}L".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_oil_cost']))
@@ -314,7 +314,7 @@ class DailyQuality:
             msg = "电耗异常,波动范围{:.2f}%\n{}\n{}" \
                 .format( formatted_value
                         , "日期:{},总电耗:{}kw".format(df.loc[6, 'clct_date'], df.loc[6, 'total_power_cost'])
-                        , "日期:{},总油耗:{}kw".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_power_cost']))
+                        , "日期:{},总电耗:{}kw".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_power_cost']))
             msgs.append(msg)
 
 
