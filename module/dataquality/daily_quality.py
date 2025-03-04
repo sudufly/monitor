@@ -10,6 +10,9 @@ from config.config import Config
 
 class DailyQuality:
     config = Config()
+    enable_fuel = config.get_quality_fuel_enable()
+    enable_elec = config.get_quality_elec_enable()
+    enable_mix = False
 
     def parse_jdbc_url(self, jdbc_url):
         # 去掉前缀 jdbc:postgresql://
@@ -40,8 +43,7 @@ class DailyQuality:
             )
             self.cursor = self.db.cursor()
 
-    def get_fuel_consumption(self, date):
-        query = """
+    common_sql = """
                 WITH RECURSIVE DESCENDANTS AS (
 		select uo.*,'' as modelParentStr  from
 		t_car_model uo
@@ -56,10 +58,14 @@ class DailyQuality:
 		)
 		,m as(
 		select
-model_id,energy_type,concat_ws(' ',modelParentStr,model_name) as model_name
-from
-DESCENDANTS
+            model_id,energy_type,concat_ws(' ',modelParentStr,model_name) as model_name
+            from
+            DESCENDANTS
 		)
+		"""
+    def get_fuel_consumption(self, date):
+        query = self.common_sql + """
+                
         SELECT 
             clct_date_ts::date AS clct_date,
             car_model_id,
@@ -75,7 +81,7 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone =8 and (online_state = 1 or online_state is null)
+            tcm.energy_type = 1 AND clct_date_ts = %s AND time_zone =8 and (online_state = 1 or online_state is null)
         GROUP BY 
             clct_date_ts::date, car_model_id, tcm.model_name;
         """
@@ -100,25 +106,8 @@ DESCENDANTS
                    'avg_oil_consumption_per_hour', 'online_cnt']]
 
     def get_electric_consumption(self, date):
-        query = """
-                WITH RECURSIVE DESCENDANTS AS (
-		select uo.*,'' as modelParentStr  from
-		t_car_model uo
-		where uo.model_level = (
-		    select max(model_level) from t_car_model
-
-		)
-		UNION ALL
-		SELECT  B.* ,concat_ws(' ',D.modelParentStr,D.model_name) as modelParentStr
-		FROM t_car_model B
-		INNER JOIN DESCENDANTS D ON D.model_id = B.model_parent
-		)
-		,m as(
-		select
-model_id,energy_type,concat_ws(' ',modelParentStr,model_name) as model_name
-from
-DESCENDANTS
-		)
+        query = self.common_sql + """
+                
         SELECT 
             clct_date_ts::date AS clct_date,
             car_model_id,
@@ -134,7 +123,7 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone =8 and (online_state = 1 or online_state is null)
+            tcm.energy_type = 2 AND clct_date_ts = %s AND time_zone =8 and (online_state = 1 or online_state is null)
         GROUP BY 
             clct_date_ts::date, car_model_id, tcm.model_name;
         """
@@ -155,25 +144,7 @@ DESCENDANTS
                    'avg_power_cost_per_hour', 'online_cnt']]
 
     def get_fuel_detail(self, date):
-        query = """
-                WITH RECURSIVE DESCENDANTS AS (
-		select uo.*,'' as modelParentStr  from
-		t_car_model uo
-		where uo.model_level = (
-		    select max(model_level) from t_car_model
-
-		)
-		UNION ALL
-		SELECT  B.* ,concat_ws(' ',D.modelParentStr,D.model_name) as modelParentStr
-		FROM t_car_model B
-		INNER JOIN DESCENDANTS D ON D.model_id = B.model_parent
-		)
-		,m as(
-		select
-model_id,energy_type,concat_ws(' ',modelParentStr,model_name) as model_name
-from
-DESCENDANTS
-		)
+        query = self.common_sql + """
         SELECT 
             clct_date_ts::date AS clct_date,
             car_vin,
@@ -190,7 +161,7 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 1 AND clct_date_ts::date = %s AND time_zone =8 and (online_state = 1 or online_state is null);
+            tcm.energy_type = 1 AND clct_date_ts = %s AND time_zone =8 and (online_state = 1 or online_state is null);
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
@@ -207,26 +178,116 @@ DESCENDANTS
             lambda row: row['oil_cost'] / row['engine_time']  if row['engine_time'] != 0 else 0, axis=1)
         return df
 
-    def get_electric_detail(self, date):
+
+    def get_recently_fuel(self, date):
+        query = self.common_sql + """
+        
+        SELECT 
+            clct_date_ts::date AS clct_date,
+            SUM(oil_cost) AS total_oil_cost,
+            SUM(mileage) AS total_mileage
+        FROM 
+            t_o_vehicule_day td
+        JOIN 
+            t_car tc ON td.dev_id = tc.terminal_id
+        JOIN 
+            m tcm ON tc.car_model_id = tcm.model_id
+        WHERE 
+            tcm.energy_type = 1 AND clct_date_ts >= cast(%s as timestamp) - interval '6 days' AND clct_date_ts <= %s AND time_zone =8 and (online_state = 1 or online_state is null)
+        GROUP BY 
+            clct_date_ts::date
+        ORDER BY 
+            clct_date_ts::date;
+        """
+        self.cursor.execute(query, (date, date,))
+        df = pd.DataFrame(self.cursor.fetchall(),
+                          columns=['clct_date', 'total_oil_cost', 'total_mileage'])
+        if len(df) == 0:
+            return df
+        df['total_oil_cost'] = df['total_oil_cost'].astype(float)
+        df['total_mileage'] = df['total_mileage'].astype(float)
+        return df
+
+
+    def get_recently_elec(self, date):
+        query = self.common_sql + """
+        
+        SELECT 
+            clct_date_ts::date AS clct_date,
+            SUM(power_cost) AS total_power_cost,
+            SUM(mileage) AS total_mileage
+        FROM 
+            t_o_vehicule_day td
+        JOIN 
+            t_car tc ON td.dev_id = tc.terminal_id
+        JOIN 
+            m tcm ON tc.car_model_id = tcm.model_id
+        WHERE 
+            tcm.energy_type = 2 AND clct_date_ts >= cast(%s as timestamp) - interval '6 days' AND clct_date_ts <= %s AND time_zone =8 and (online_state = 1 or online_state is null)
+        GROUP BY 
+            clct_date_ts::date
+        ORDER BY 
+            clct_date_ts::date;
+        """
+        self.cursor.execute(query, (date, date,))
+        df = pd.DataFrame(self.cursor.fetchall(),
+                          columns=['clct_date', 'total_power_cost', 'total_mileage'])
+        if len(df) == 0:
+            return df
+        df['total_power_cost'] = df['total_power_cost'].astype(float)
+        df['total_mileage'] = df['total_mileage'].astype(float)
+        return df
+
+    def get_total_consumption_electric(self, date):
         query = """
         WITH RECURSIVE DESCENDANTS AS (
-		select uo.*,'' as modelParentStr  from
-		t_car_model uo
-		where uo.model_level = (
-		    select max(model_level) from t_car_model
+            select uo.*,'' as modelParentStr  from
+            t_car_model uo
+            where uo.model_level = (
+                select max(model_level) from t_car_model
+            )
+            UNION ALL
+            SELECT  B.* ,concat_ws(' ',D.modelParentStr,D.model_name) as modelParentStr
+            FROM t_car_model B
+            INNER JOIN DESCENDANTS D ON D.model_id = B.model_parent
+        )
+        ,m as(
+            select
+                model_id,energy_type,concat_ws(' ',modelParentStr,model_name) as model_name
+                from
+                DESCENDANTS
+        )
+        SELECT 
+            clct_date_ts::date AS clct_date,
+            SUM(power_cost) AS total_power_cost,
+            SUM(mileage) AS total_mileage
+        FROM 
+            t_o_vehicule_day td
+        JOIN 
+            t_car tc ON td.dev_id = tc.terminal_id
+        JOIN 
+            m tcm ON tc.car_model_id = tcm.model_id
+        WHERE 
+            tcm.energy_type = 2 AND clct_date_ts BETWEEN %s - interval '6 days' AND %s AND time_zone =8 and (online_state = 1 or online_state is null)
+        GROUP BY 
+            clct_date_ts::date
+        ORDER BY 
+            clct_date_ts::date;
+        """
+        self.cursor.execute(query, (date, date,))
+        df = pd.DataFrame(self.cursor.fetchall(),
+                          columns=['clct_date', 'total_power_cost', 'total_mileage'])
+        if len(df) == 0:
+            return df
+        df['total_power_cost'] = df['total_power_cost'].astype(float)
+        df['total_mileage'] = df['total_mileage'].astype(float)
+        return df
 
-		)
-		UNION ALL
-		SELECT  B.* ,concat_ws(' ',D.modelParentStr,D.model_name) as modelParentStr
-		FROM t_car_model B
-		INNER JOIN DESCENDANTS D ON D.model_id = B.model_parent
-		)
-		,m as(
-		select
-        model_id,energy_type,concat_ws(' ',modelParentStr,model_name) as model_name
-        from
-        DESCENDANTS
-		)
+
+
+
+    def get_electric_detail(self, date):
+        query = self.common_sql + """
         
         SELECT 
             clct_date_ts::date AS clct_date,
@@ -244,7 +305,7 @@ DESCENDANTS
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone =8 and (online_state = 1 or online_state is null) ;
+            tcm.energy_type = 2 AND clct_date_ts::date = %s AND time_zone = 8 and (online_state = 1 or online_state is null) ;
         """
         self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
@@ -266,36 +327,56 @@ DESCENDANTS
             elec = u'新能源'
             fuel_detail = u'传统车明细'
             elec_detail = u'新能源明细'
+            recently_fuel = u'传统车近7天统计'
+            recently_elec = u'新能源近7天统计'
             dfs['fuel_avg'].to_excel(writer, sheet_name=fuel, index=False)
             dfs['electric_avg'].to_excel(writer, sheet_name=elec, index=False)
             dfs['fuel_detail'].to_excel(writer, sheet_name=fuel_detail, index=False)
             dfs['electric_detail'].to_excel(writer, sheet_name=elec_detail, index=False)
+            dfs['recently_fuel'].to_excel(writer, sheet_name=recently_fuel, index=False)
+            dfs['recently_elec'].to_excel(writer, sheet_name=recently_elec, index=False)
 
             # 添加柱状图到 Fuel Avg Consumption
-            ws_fuel_avg = writer.sheets[fuel]
+            if self.enable_fuel:
+                ws_fuel_avg = writer.sheets[fuel]
+                # 添加柱状图到 Total Consumption
+                ws_total_consumption = writer.sheets[recently_fuel]
+                self.add_bar_chart(u"总里程", dfs['recently_fuel'], ws_total_consumption, 1,3, "K2")
+                self.add_bar_chart(u"总油耗", dfs['recently_fuel'], ws_total_consumption, 1,2, "K17")
 
-            self.add_bar_chart(u"平均油耗/小时", dfs['fuel_avg'], ws_fuel_avg, 7, "K2")
-            self.add_bar_chart(u"平均油耗", dfs['fuel_avg'], ws_fuel_avg, 4, 'K17')
-            self.add_bar_chart(u"平均里程", dfs['fuel_avg'], ws_fuel_avg, 5, 'K31')
-            self.add_bar_chart(u"平均时长", dfs['fuel_avg'], ws_fuel_avg, 6, 'K45')
+                self.add_bar_chart(u"平均油耗/小时", dfs['fuel_avg'], ws_fuel_avg, 3,7, "K2")
+                self.add_bar_chart(u"平均油耗", dfs['fuel_avg'], ws_fuel_avg,3, 4, 'K17')
+                self.add_bar_chart(u"平均里程", dfs['fuel_avg'], ws_fuel_avg,3, 5, 'K31')
+                self.add_bar_chart(u"平均时长", dfs['fuel_avg'], ws_fuel_avg,3, 6, 'K45')
 
-            # 添加柱状图到 Electric Avg Consumption
-            ws_electric_avg = writer.sheets[elec]
 
-            self.add_bar_chart(u"平均电耗/小时", dfs['electric_avg'], ws_electric_avg, 7, "K2")
-            self.add_bar_chart(u"平均电耗", dfs['electric_avg'], ws_electric_avg, 4, 'K16')
-            self.add_bar_chart(u"平均里程", dfs['electric_avg'], ws_electric_avg, 5, 'K31')
-            self.add_bar_chart(u"平均时长", dfs['electric_avg'], ws_electric_avg, 6, 'K45')
+
+            if self.enable_elec:
+
+                ws_recently_elec = writer.sheets[recently_elec]
+                self.add_bar_chart(u"总里程", dfs['recently_elec'], ws_recently_elec, 1,3, "K2")
+                self.add_bar_chart(u"总电耗", dfs['recently_elec'], ws_recently_elec, 1,2, "K17")
+                # 添加柱状图到 Electric Avg Consumption
+                ws_electric_avg = writer.sheets[elec]
+
+                self.add_bar_chart(u"平均电耗/小时", dfs['electric_avg'], ws_electric_avg,3, 7, "K2")
+                self.add_bar_chart(u"平均电耗", dfs['electric_avg'], ws_electric_avg,3, 4, 'K16')
+                self.add_bar_chart(u"平均里程", dfs['electric_avg'], ws_electric_avg,3, 5, 'K31')
+                self.add_bar_chart(u"平均时长", dfs['electric_avg'], ws_electric_avg,3, 6, 'K45')
+
+
+
+
 
         print(u"Excel report generated: {}".format(filename))
 
-    def add_bar_chart(self, title, dfs, sheet, c1, column):
+    def add_bar_chart(self, title, dfs, sheet,x, c1, column):
         chart = BarChart()
         chart.title = title
         chart.height = 6
         datas = Reference(sheet, min_col=c1, min_row=1,
                           max_row=len(dfs) + 1)
-        labels = Reference(sheet, min_col=3, min_row=2,
+        labels = Reference(sheet, min_col=x, min_row=2,
                            max_row=len(dfs) + 1)
         chart.add_data(datas, titles_from_data=True)
         chart.set_categories(labels)
@@ -309,12 +390,16 @@ DESCENDANTS
         electric_avg_df = self.get_electric_consumption(date)
         fuel_detail_df = self.get_fuel_detail(date)
         electric_detail_df = self.get_electric_detail(date)
+        recently_fuel = self.get_recently_fuel(date)
+        recently_elec = self.get_recently_elec(date)
 
         dfs = {
             'fuel_avg': fuel_avg_df,
             'electric_avg': electric_avg_df,
             'fuel_detail': fuel_detail_df,
-            'electric_detail': electric_detail_df
+            'electric_detail': electric_detail_df,
+            'recently_fuel': recently_fuel,
+            'recently_elec': recently_elec,
         }
 
         self.write_to_excel(dfs, u'{}/日统计{}.xlsx'.format(dir, date))

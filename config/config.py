@@ -24,7 +24,8 @@ class Config:
 
     quality_route_enable = False
     quality_daily_enable = False
-
+    quality_fuel_enable = True
+    quality_elec_enable = False
     def __init__(self, debug=False):
 
         self.config = cm.getConfig(debug)
@@ -73,7 +74,10 @@ class Config:
                 self.quality_route_enable = quality['routeEnable'].lower() == 'True'.lower()
             if 'dailyEnable' in quality:
                 self.quality_daily_enable = quality['dailyEnable'].lower() == 'True'.lower()
-
+            if 'fuelEnable' in quality:
+                self.quality_fuel_enable = quality['fuelEnable'].lower() == 'True'.lower()
+            if 'elecEnable' in quality:
+                self.quality_elec_enable = quality['elecEnable'].lower() == 'True'.lower()
     def get_config(self):
         return self.config
 
@@ -124,3 +128,8 @@ class Config:
         return self.quality_route_enable
     def get_quality_daily_enable(self):
         return self.quality_daily_enable
+
+    def get_quality_fuel_enable(self):
+        return self.quality_fuel_enable
+    def get_quality_elec_enable(self):
+        return self.quality_elec_enable
