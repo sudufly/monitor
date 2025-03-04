@@ -210,6 +210,8 @@ class DailyQuality:
                           columns=['clct_date', 'total_oil_cost', 'total_mileage'])
         msgs = []
         if len(df) == 0:
+            msg = '{}日传统车统计缺失'.format( date)
+            msgs.append(msg)
             return df,msgs
         df['total_oil_cost'] = df['total_oil_cost'].astype(float)
         df['total_mileage'] = df['total_mileage'].astype(float)
@@ -228,26 +230,26 @@ class DailyQuality:
         if end_date != (date):
             msg = '{}日传统车统计缺失'.format( date)
             msgs.append(msg)
+        else:
+            value = Decimal(mileage_change)
+            formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
 
-        value = Decimal(mileage_change)
-        formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
-
-        if mileage_change < self.threshold_dec or mileage_change > self.threshold_inc:
-            msg = "里程异常,波动范围{:.2f}%\n{}\n{}" \
-                .format( formatted_value
-                        , "日期:{},总里程:{}km".format(df.loc[6, 'clct_date'], df.loc[6, 'total_mileage'])
-                        , "日期:{},总里程:{}km".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_mileage']))
-            msgs.append(msg)
+            if mileage_change < self.threshold_dec or mileage_change > self.threshold_inc:
+                msg = "里程异常,波动范围{:.2f}%\n{}\n{}" \
+                    .format( formatted_value
+                            , "日期:{},总里程:{}km".format(df.loc[6, 'clct_date'], df.loc[6, 'total_mileage'])
+                            , "日期:{},总里程:{}km".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_mileage']))
+                msgs.append(msg)
 
 
-        value = Decimal(mileage_change)
-        formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
-        if oil_change < self.threshold_dec or oil_change > self.threshold_inc:
-            msg = "{}. 油耗异常,波动范围{:.2f}%\n{}\n{}" \
-                .format(formatted_value
-                        , "日期:{},总油耗:{}L".format(df.loc[6, 'clct_date'], df.loc[6, 'total_oil_cost'])
-                        , "日期:{},总油耗:{}L".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_oil_cost']))
-            msgs.append(msg)
+            value = Decimal(mileage_change)
+            formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
+            if oil_change < self.threshold_dec or oil_change > self.threshold_inc:
+                msg = "{}. 油耗异常,波动范围{:.2f}%\n{}\n{}" \
+                    .format(formatted_value
+                            , "日期:{},总油耗:{}L".format(df.loc[6, 'clct_date'], df.loc[6, 'total_oil_cost'])
+                            , "日期:{},总油耗:{}L".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_oil_cost']))
+                msgs.append(msg)
 
 
 
@@ -278,6 +280,8 @@ class DailyQuality:
                           columns=['clct_date', 'total_power_cost', 'total_mileage'])
         msgs = []
         if len(df) == 0:
+            msg = '{}日新能源统计缺失'.format( date)
+            msgs.append(msg)
             return df, msgs
         df['total_power_cost'] = df['total_power_cost'].astype(float)
         df['total_mileage'] = df['total_mileage'].astype(float)
