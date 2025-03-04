@@ -82,7 +82,8 @@ if __name__ == "__main__":
     daily_quality = DailyQuality()
     if config.get_quality_route_enable():
         route_quality.process(target_date, dir)
-    daily_quality.process(target_date, dir)
+    if config.get_quality_daily_enable():
+        daily_quality.process(target_date, dir)
 
     # report = Report()
     # # 生成压缩包
