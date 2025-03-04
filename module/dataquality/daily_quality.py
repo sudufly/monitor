@@ -454,6 +454,7 @@ class DailyQuality:
                 ws_total_consumption = writer.sheets[recently_fuel]
                 self.add_bar_chart(u"总里程", dfs['recently_fuel'], ws_total_consumption, 1, 3, "K2")
                 self.add_bar_chart(u"总油耗", dfs['recently_fuel'], ws_total_consumption, 1, 2, "K17")
+                self.add_bar_chart(u"总条数", dfs['recently_fuel'], ws_total_consumption, 1, 4, "K31")
 
                 self.add_bar_chart(u"平均油耗/小时", dfs['fuel_avg'], ws_fuel_avg, 3, 7, "K2")
                 self.add_bar_chart(u"平均油耗", dfs['fuel_avg'], ws_fuel_avg, 3, 4, 'K17')
@@ -467,6 +468,7 @@ class DailyQuality:
                 ws_recently_elec = writer.sheets[recently_elec]
                 self.add_bar_chart(u"总里程", dfs['recently_elec'], ws_recently_elec, 1, 3, "K2")
                 self.add_bar_chart(u"总电耗", dfs['recently_elec'], ws_recently_elec, 1, 2, "K17")
+                self.add_bar_chart(u"总条数", dfs['recently_elec'], ws_recently_elec, 1, 4, "K31")
                 # 添加柱状图到 Electric Avg Consumption
                 ws_electric_avg = writer.sheets[elec]
 
