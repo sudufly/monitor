@@ -472,7 +472,6 @@ class DailyQuality:
             for m in elec_msgs:
                 msgs.append('{}. {}'.format(idx,m))
                 idx += 1
-        print msgs
         if len(msgs) > 0:
             self.wx.send(alarm(self.config.project, self.service, date,
                                '日统计异常', '\n' + '\n'.join(msgs)))
