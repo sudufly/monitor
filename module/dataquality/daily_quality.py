@@ -195,7 +195,8 @@ class DailyQuality:
         SELECT 
             clct_date_ts::date AS clct_date,
             SUM(oil_cost) AS total_oil_cost,
-            SUM(mileage) AS total_mileage
+            SUM(mileage) AS total_mileage,
+            count(1) as record
         FROM 
             t_o_vehicule_day td
         JOIN 
@@ -211,7 +212,7 @@ class DailyQuality:
         """.format(self.cond)
         self.cursor.execute(query, (date, date,))
         df = pd.DataFrame(self.cursor.fetchall(),
-                          columns=['clct_date', 'total_oil_cost', 'total_mileage'])
+                          columns=['clct_date', 'total_oil_cost', 'total_mileage','record'])
         msgs = []
         if len(df) == 0:
             msg = '{}日传统车统计缺失'.format( date)
@@ -223,36 +224,52 @@ class DailyQuality:
         # 计算每日的变化百分比
         df['mileage_change_pct'] = df['total_mileage'].pct_change() * 100
         df['oil_cost_change_pct'] = df['total_oil_cost'].pct_change() * 100
+        df['record_change_pct'] = df['record'].pct_change() * 100
 
-        # 检测异常
+
+
+
+    # 检测异常
 
         mileage_change = df.loc[6, 'mileage_change_pct']
         oil_change = df.loc[6, 'oil_cost_change_pct']
+        record_change = df.loc[6, 'record_change_pct']
         end_date = df.loc[len(df) - 1, 'clct_date'].strftime('%Y-%m-%d')
 
 
         if end_date != (date):
-            msg = '{}日传统车统计缺失'.format( date)
+            msg = '{} 传统车统计缺失'.format( date)
             msgs.append(msg)
         else:
-            value = Decimal(mileage_change)
-            formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
 
-            if mileage_change < self.threshold_dec or mileage_change > self.threshold_inc:
-                msg = "里程异常,波动范围{:.2f}%\n{}\n{}" \
-                    .format( formatted_value
-                            , "日期:{},总里程:{}km".format(df.loc[6, 'clct_date'], df.loc[6, 'total_mileage'])
-                            , "日期:{},总里程:{}km".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_mileage']))
+
+            if record_change < -5:
+                value = Decimal(record_change)
+                formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
+                msg = "传统车条数异常,波动{:.2f}%\n{}\n{}" \
+                    .format(formatted_value
+                            , "{} 条数:{}".format(df.loc[6, 'clct_date'], df.loc[6, 'record'])
+                            , "{} 条数:{}".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'record']))
                 msgs.append(msg)
 
 
-            value = Decimal(oil_change)
-            formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
+            if mileage_change < self.threshold_dec or mileage_change > self.threshold_inc:
+                value = Decimal(mileage_change)
+                formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
+                msg = "传统车里程异常,波动 {:.2f}%\n{}\n{}" \
+                    .format( formatted_value
+                            , "{} 总里程:{}km".format(df.loc[6, 'clct_date'], df.loc[6, 'total_mileage'])
+                            , "{} 总里程:{}km".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_mileage']))
+                msgs.append(msg)
+
+
             if oil_change < self.threshold_dec or oil_change > self.threshold_inc:
-                msg = "油耗异常,波动范围{:.2f}%\n{}\n{}" \
+                value = Decimal(record_change)
+                formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
+                msg = "传统车油耗异常,波动 {:.2f}%\n{}\n{}" \
                     .format(formatted_value
-                            , "日期:{},总油耗:{}L".format(df.loc[6, 'clct_date'], df.loc[6, 'total_oil_cost'])
-                            , "日期:{},总油耗:{}L".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_oil_cost']))
+                            , "{} 总油耗:{}L".format(df.loc[6, 'clct_date'], df.loc[6, 'total_oil_cost'])
+                            , "{} 总油耗:{}L".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_oil_cost']))
                 msgs.append(msg)
 
 
@@ -265,7 +282,8 @@ class DailyQuality:
         SELECT 
             clct_date_ts::date AS clct_date,
             SUM(power_cost) AS total_power_cost,
-            SUM(mileage) AS total_mileage
+            SUM(mileage) AS total_mileage,
+            count(1) as record
         FROM 
             t_o_vehicule_day td
         JOIN 
@@ -293,20 +311,31 @@ class DailyQuality:
         # 计算每日的变化百分比
         df['mileage_change_pct'] = df['total_mileage'].pct_change() * 100
         df['power_cost_change_pct'] = df['total_power_cost'].pct_change() * 100
+        df['record_change_pct'] = df['record'].pct_change() * 100
 
         mileage_change = df.loc[6, 'mileage_change_pct']
         power_change = df.loc[6, 'power_cost_change_pct']
+        record_change = df.loc[6, 'record_change_pct']
         end_date = df.loc[len(df) - 1, 'clct_date'].strftime('%Y-%m-%d')
 
 
         if end_date != (date):
             msg = '{}日新能源统计缺失'.format( date)
             msgs.append(msg)
+
+        value = Decimal(record_change)
+        formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
+        if record_change < -5:
+            msg = "新能源条数异常,波动 {:.2f}%\n{}\n{}" \
+                .format(formatted_value
+                        , "{} 条数:{}".format(df.loc[6, 'clct_date'], df.loc[6, 'record'])
+                        , "{} 条数:{}".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'record']))
+            msgs.append(msg)
+
         value = Decimal(mileage_change)
         formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
-
         if mileage_change < self.threshold_dec or mileage_change > self.threshold_inc:
-            msg = "里程异常,波动范围{:.2f}%\n{}\n{}" \
+            msg = "新能源里程异常,波动 {:.2f}%\n{}\n{}" \
                 .format(formatted_value
                         , "日期:{},总里程:{}km".format(df.loc[6, 'clct_date'], df.loc[6, 'total_mileage'])
                         , "日期:{},总里程:{}km".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_mileage']))
@@ -315,7 +344,7 @@ class DailyQuality:
         value = Decimal(power_change)
         formatted_value = value.quantize(Decimal('0.00'), rounding=ROUND_DOWN)
         if power_change < self.threshold_dec or power_change > self.threshold_inc:
-            msg = "电耗异常,波动范围{:.2f}%\n{}\n{}" \
+            msg = "新能源电耗异常,波动 {:.2f}%\n{}\n{}" \
                 .format( formatted_value
                         , "日期:{},总电耗:{}kw".format(df.loc[6, 'clct_date'], df.loc[6, 'total_power_cost'])
                         , "日期:{},总电耗:{}kw".format(df.loc[6 - 1, 'clct_date'], df.loc[6 - 1, 'total_power_cost']))
