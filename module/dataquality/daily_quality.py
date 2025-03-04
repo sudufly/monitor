@@ -134,11 +134,11 @@ class DailyQuality:
         JOIN 
             m tcm ON tc.car_model_id = tcm.model_id
         WHERE 
-            tcm.energy_type = 2 AND clct_date_ts = %s AND time_zone =8 and (%s)
+            tcm.energy_type = 2 AND clct_date_ts = %s AND time_zone =8 and {}
         GROUP BY 
             clct_date_ts::date, car_model_id, tcm.model_name;
-        """
-        self.cursor.execute(query, (date,self.cond))
+        """.format(self.cond)
+        self.cursor.execute(query, (date,))
         df = pd.DataFrame(self.cursor.fetchall(),
                           columns=['clct_date', 'car_model_id', 'model_name', 'avg_power_cost', 'avg_mileage',
                                    'avg_engine_time', 'online_cnt'])

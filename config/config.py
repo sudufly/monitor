@@ -26,7 +26,7 @@ class Config:
     quality_daily_enable = False
     quality_fuel_enable = True
     quality_elec_enable = False
-    quality_threshold_dec = -10
+    quality_threshold_dec = -20
     quality_threshold_inc = 50
     quality_has_online_state = True
     def __init__(self, debug=False):
