@@ -477,7 +477,7 @@ class DailyQuality:
                 self.add_bar_chart(u"平均里程", dfs['electric_avg'], ws_electric_avg, 3, 5, 'K31')
                 self.add_bar_chart(u"平均时长", dfs['electric_avg'], ws_electric_avg, 3, 6, 'K45')
 
-        print(u"Excel report generated: {}".format(filename))
+        # print(u"Excel report generated: {}".format(filename.decode('utf-8')))
 
     def add_bar_chart(self, title, dfs, sheet, x, c1, column):
         chart = BarChart()

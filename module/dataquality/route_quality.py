@@ -172,7 +172,7 @@ class RouteQuality:
                                  item['daily_oil'], item['route_oil'], item['diff_oil'],
                                  item['is_cross_day']])
 
-        print(u"CSV report generated: {}".format(filename))
+        # print(u"CSV report generated: {}".format(filename))
 
     def process(self, target_date, dir):
         validator = RouteQuality()
