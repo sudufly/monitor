@@ -164,7 +164,8 @@ class SpringMonitor(object):
                             last_state, state)))
                     info['state'] = state
                     info['detectTime'] = cur_time
-                    info['alarmTime'] = 0
+                    info.pop('errTime')
+                    info.pop('alarmTime')
 
                 elif state != 'UP' and last_state == 'UP':
                     # 首次异常
@@ -220,10 +221,12 @@ class SpringMonitor(object):
         info = stateMap.get(name, {'state': 'EXIT', 'detectTime': cur_time, 'alarmTime': 0, 'errTime': cur_time})
         alarmTime = info.get('alarmTime', 0)
 
+        if not info.has_key('errTime'):
+            info['errTime'] = cur_time
+
+
         info['errTime'] = cur_time
         errTime = info['errTime']
-
-
         # 退出10min 报一次
         if (cur_time - alarmTime > warning_interval * 3):
             info['alarmTime'] = cur_time
