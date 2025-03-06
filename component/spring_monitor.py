@@ -141,9 +141,12 @@ class SpringMonitor(object):
                 print("Response is not in XML format.")
                 return
 
+
             apps = self.get_apps(response.text)
             # print apps
             for name, ins in apps.items():
+                if len(ins) < 2:
+                    continue
                 state = ins[1]
                 info = stateMap.get(name, {'state': state, 'detectTime': cur_time})
                 last_state = info['state']
