@@ -216,10 +216,9 @@ class SpringMonitor(object):
 
         info = stateMap.get(name, {'state': 'EXIT', 'detectTime': cur_time, 'alarmTime': 0, 'errTime': cur_time})
         alarmTime = info.get('alarmTime', 0)
-        if not info.has_key('errTime'):
-            info['errTime'] = cur_time
 
-        errTime = info.get('errTime', cur_time)
+        info['errTime'] = cur_time
+        errTime = info['errTime']
 
 
         # 退出10min 报一次
