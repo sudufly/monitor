@@ -422,3 +422,29 @@ class YarnTool:
         else:
             print("Failed to retrieve task managers, status code: {}".format(response.status_code))
             return {}
+
+
+    def get_spark_active_batches(self, applicationId):
+        """
+        获取Spark Streaming应用的Active Batches信息
+        """
+        # 首先获取Spark应用的Web UI地址
+        url = "{}/ws/v1/cluster/apps/{}".format(self.yarn_url, applicationId)
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            app_data = response.json()
+            am_host = app_data['app']['amHostHttpAddress']
+
+            # 通过Spark UI获取Streaming信息
+            spark_streaming_url = "http://{}/streaming/batches?limit=100".format(am_host)
+            streaming_response = requests.get(spark_streaming_url)
+
+            if streaming_response.status_code == 200:
+                return streaming_response.json()
+            else:
+                print("Failed to fetch Spark streaming batches")
+                return None
+        else:
+            print("Failed to fetch application details")
+            return None

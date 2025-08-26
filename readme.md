@@ -16,23 +16,23 @@ pip install logging
 ## 时区
 pip install pytz
 ## 显示宽度
-pip install wcwidth
+pip install --trusted-host pypi.python.org wcwidth
 
-pip install urllib3==1.10.2
+pip install  --trusted-host pypi.python.org urllib3==1.10.2
 
 ## pg
 yum install -y postgresql-devel
 yum install -y python-devel
-pip install psycopg2==2.8.6
+pip install  --trusted-host pypi.python.org psycopg2==2.8.6
 pip install --ignore-installe psycopg2==2.8.6
 
 ##
-pip install pandas -i "https://pypi.doubanio.com/simple/"
+pip install  --trusted-host pypi.python.org pandas -i "https://pypi.doubanio.com/simple/"
 
-pip -v install pandas==0.24.2
+pip -v install  --trusted-host pypi.python.org pandas==0.24.2
 
-pip install et-xmlfile==1.0.1
-pip install openpyxl==2.6.4
+pip install  --trusted-host pypi.python.org et-xmlfile==1.0.1
+pip install  --trusted-host pypi.python.org openpyxl==2.6.4
 
 
 

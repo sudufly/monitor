@@ -122,7 +122,7 @@ class DailyQuality:
         SELECT 
             clct_date_ts::date AS clct_date,
             car_model_id,
-            tcm.model_name,
+            tcm.model _name,
             SUM(power_cost) / count(1) AS avg_power_cost,
             SUM(mileage) / count(1) AS avg_mileage,
             SUM(engine_time) / count(1) AS avg_engine_time,
