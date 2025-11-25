@@ -1,0 +1,12 @@
+# /etc/systemd/system/my_service.service
+[Unit]
+Description= Monitor Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/xubo/tools/tool/
+
+
+[Install]
+WantedBy=multi-user.target
