@@ -225,6 +225,7 @@ class MonitorKafkaInfra(object):
 
     alarm_map = {}
 
+
     def monitor_lag(self):
         try:
             warning_offsets = self.config.get_warning_offsets()
@@ -234,7 +235,6 @@ class MonitorKafkaInfra(object):
             project = self.config.get_project()
             lag_map = {}
             cur_time = time.time()
-
 
             # {TopicPartition(topic=u'online-events', partition=49): (314735, u'illidan-c')}
             consumer_offsets_dict = {}
@@ -246,9 +246,8 @@ class MonitorKafkaInfra(object):
              ]
             # kafka最大偏移量
             topic_offsets_dict, _ = self.get_highwater_offsets(self.kafka_admin_client,
-                                                                            None)
+                                                               None)
             # {(consumer_group, topic, partition): consumer_offset}
-
 
             for e in consumer_offsets_dict.items():
                 key, offset = e[0], e[1]
@@ -270,6 +269,18 @@ class MonitorKafkaInfra(object):
             remove_arr = []
             arr_recover = []
             arr_alarm = []
+
+            # 创建一个字典来跟踪每个主题的最新报警时间
+            topic_last_alarm_time = {}
+
+            # 首先收集已存在的报警信息中的主题和报警时间
+            for key in alarmMap:
+                info = alarmMap[key]
+                topic = key[1]  # key格式为(consumer_group, topic, partition)
+                alarmTime = info.get("alarmTime", 0)
+                if "alarmTime" in info and (topic not in topic_last_alarm_time or alarmTime > topic_last_alarm_time[topic]):
+                    topic_last_alarm_time[topic] = alarmTime
+
             for key in alarmMap:
                 info = alarmMap[key]
 
@@ -277,30 +288,40 @@ class MonitorKafkaInfra(object):
                 detectTime = info['detectTime']
                 alarmTime = info.get("alarmTime", cur_time)
 
+                # 获取当前主题的最新报警时间
+                current_topic = key[1]
+                last_topic_alarm_time = topic_last_alarm_time.get(current_topic, 0)
+
                 msg = "消费组: {}, Topic: {}, 分区: {}, 未消费消息条数: {}".format(
                     key[0], key[1], key[2], lag)
                 # 1min 没有检测到则代表恢复
                 if cur_time - detectTime > 60:
-
                     # self.wx.send(recover(self.config.get_project(), self.service, alarmTime,
                     #                      '告警恢复', msg))
                     arr_recover.append(msg)
                     remove_arr.append(key)
 
                 elif info.has_key("alarmTime"):
-                    # 每10min 报一次
-                    if cur_time - alarmTime > warning_interval and lag > warning_offsets:
+                    # 修改报警逻辑：如果该主题在报警间隔内已经发过报警，则不重复报警
+                    if cur_time - last_topic_alarm_time > warning_interval and lag > warning_offsets:
                         info['alarmTime'] = cur_time
+                        # 更新该主题的最新报警时间
+                        topic_last_alarm_time[current_topic] = cur_time
                         # self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
                         #                                '消费组未消费消息条数>{}'.format(warning_offsets), msg))
                         arr_alarm.append(msg)
 
                 else:
-                    info['alarmTime'] = cur_time
-                    # self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
-                    #                                '消费组未消费消息条数>{}'.format(warning_offsets), msg))
-                    arr_alarm.append(msg)
+                    # 新报警也需要检查是否在主题级别的报警间隔内
+                    if cur_time - last_topic_alarm_time > warning_interval:
+                        info['alarmTime'] = cur_time
+                        # 更新该主题的最新报警时间
+                        topic_last_alarm_time[current_topic] = cur_time
+                        # self.wx.send(generate_markdown(self.config.get_project(), self.service, alarmTime,
+                        #                                '消费组未消费消息条数>{}'.format(warning_offsets), msg))
+                        arr_alarm.append(msg)
                 alarmMap[key] = info
+
             # 遍历要删除的键列表并从字典中删除这些键
             if len(arr_recover) > 0:
                 self.wx.send(recover(project, self.service, alarmTime,
