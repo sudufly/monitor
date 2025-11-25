@@ -57,7 +57,7 @@ class WxClient(object):
         #
         #        }  # 发送文本消息27     # 发送请求
         try:
-            result = requests.post(url, headers=headers, json=msg)
+            result = requests.post(url, headers=headers, json=msg,verify = False)
             return True
         except Exception as e:
             print("[wxCon] send Requset Failed:", e)
