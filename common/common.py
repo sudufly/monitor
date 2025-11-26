@@ -121,6 +121,8 @@ def display_width(text):
 
 
 def get_size(state_size):
+    if not isinstance(state_size, (int, float)):
+        return state_size
     state_size = int(state_size)
     if state_size > 1024 * 1024:
         state_size_str = '{} MB'.format(state_size / 1024 / 1024)
@@ -130,6 +132,9 @@ def get_size(state_size):
 
 
 def get_duration(duration):
+    # 如果不是数字直接返回
+    if not isinstance(duration, (int, float)):
+        return duration
     if duration < 1000:
         duration_str = '{} ms'.format(duration)
     elif duration < 60 * 1000:
