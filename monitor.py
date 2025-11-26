@@ -15,8 +15,7 @@ from component.spring_monitor import SpringMonitor
 from component.wx_client import WxClient
 from component.yarn_app_monitor import YarnAppMonitor
 from config.config import Config
-from module.dataquality.daily_quality import DailyQuality
-from module.dataquality.route_quality import RouteQuality
+
 from qualityTools import Report
 
 tz = pytz.timezone('Asia/Shanghai')

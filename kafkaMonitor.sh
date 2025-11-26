@@ -37,6 +37,9 @@ LAST_HEARTBEAT_FILE="logs/kafka_heartbeat_last_sent.txt"
 # 记录每个消费组:主题的最近一次报警时间
 TOPIC_ALARM_CACHE="logs/kafka_topic_alarm_cache.txt"
 
+date +'%Y-%m-%d %H:%M:%S' > "$LAST_HEARTBEAT_FILE"
+
+
 # ========================= 工具函数 =========================
 # 日志打印函数
 log() {
@@ -225,10 +228,10 @@ is_group_allowed() {
     fi
     for allowed_group in "${CONSUMER_GROUP_FILTER[@]}"; do
         if [ "$allowed_group" = "$group" ]; then
-            return 0
+            return 1
         fi
     done
-    return 1
+    return 0
 }
 
 # 检查是否需要发送心跳
@@ -253,7 +256,7 @@ main() {
     fi
 
     while true; do
-        log "开始新一轮检测..."
+#        log "开始新一轮检测..."
         all_offsets=$($KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server "$KAFKA_BROKERS" \
             --all-groups --describe 2>/dev/null | \
             awk 'NR == 1 { next } { print $1, $2, $3, $6 }')
@@ -266,7 +269,7 @@ main() {
                     continue
                 fi
                 if ! [[ "$lag" =~ ^[0-9]+$ ]]; then
-                    log "警告：消费组=$group, 主题=$topic, 分区=$partition 的LAG值'$lag'无效，已跳过"
+#                    log "警告：消费组=$group, 主题=$topic, 分区=$partition 的LAG值'$lag'无效，已跳过"
                     continue
                 fi
 
@@ -312,7 +315,7 @@ main() {
         fi
 
         check_heartbeat
-        log "本次检测完成，等待$CHECK_INTERVAL秒后再次检测"
+#        log "本次检测完成，等待$CHECK_INTERVAL秒后再次检测"
         sleep $CHECK_INTERVAL
     done
 }

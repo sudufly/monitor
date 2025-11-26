@@ -211,17 +211,17 @@ class YarnSparkMonitor(object):
             log_error("没有批次信息可展示")
             return
 
-        log_info("\n" + "=" * 110)
-        log_info("Spark Streaming 批次摘要 (最近 {} 个批次)".format(len(batches)))
-        log_info("=" * 110)
+        # log_info("\n" + "=" * 110)
+        # log_info("Spark Streaming 批次摘要 (最近 {} 个批次)".format(len(batches)))
+        # log_info("=" * 110)
 
         # 表头
-        title = "{:<22}| {:<12}| {:<15}| {:<15}| {:<10}| {:<25}|"
-        print(title.format(
-            "Batch Time", "Input Size", "schedulingDelay", "processingTime", "totalDelay", "Output Ops: Succeeded/Total"
-        ))
-        print("-" * 110)
-
+        # title = "{:<22}| {:<12}| {:<15}| {:<15}| {:<10}| {:<25}|"
+        # print(title.format(
+        #     "Batch Time", "Input Size", "schedulingDelay", "processingTime", "totalDelay", "Output Ops: Succeeded/Total"
+        # ))
+        # print("-" * 110)
+        data = []
         for batch in batches:
             # print(json.dumps(batch, indent=2))
 
@@ -234,18 +234,18 @@ class YarnSparkMonitor(object):
             complete = batch.get("numCompletedOutputOps", 0)
             total = batch.get("numTotalOutputOps", 0)
 
-            # 计算输入消息数
-            input_rows = 0
-            if "inputSources" in batch:
-                for source in batch["inputSources"]:
-                    input_rows += source.get("numInputRows", 0)
 
-            print(title.format(
-                batch_id, input_size, get_duration(scheduling_delay), get_duration(processing_time),
-                get_duration(total_delay), "{}/{}".format(complete, total)
-            ))
+            data.append(OrderedDict([
+                    ("Batch Time", batch_id),
+                    ("Input Size", input_size),
+                    ("schedulingDelay", get_duration(scheduling_delay)),
+                    ("processingTime", get_duration(processing_time)),
+                    ("totalDelay", get_duration(total_delay)),
+                    ("Output Ops: Succeeded/Total", "{}/{}".format(complete, total)),
 
-        log_info("=" * 110 + "\n")
+                ]))
+        cm.print_dataset("Streaming Completed Batches", data)
+
 
     def display_executors_summary(self, infos):
         """展示摘要日志"""
@@ -295,12 +295,17 @@ class YarnSparkMonitor(object):
 # 主监控逻辑
 # ==============================================================================
 def main():
-    sys.argv[0]
+    if len(sys.argv) < 2:
+        print ("参数说明：")
+
+        print ("参数 【0】 appName")
+        print ("参数 【1】 batch/executor 默认batch")
+        sys.exit(1)
     monitor = YarnSparkMonitor(
         spark_app_name=sys.argv[1]
     )
     info_type = 'batch'
-    if len(sys.argv) >= 2:
+    if len(sys.argv) >= 3:
         info_type = sys.argv[2]
 
     # 初始化连接（关键：自动发现 Spark UI 地址）
