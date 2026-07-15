@@ -29,6 +29,8 @@ class Config:
     quality_threshold_dec = -20
     quality_threshold_inc = 50
     quality_has_online_state = True
+
+
     def __init__(self, debug=False):
 
         self.config = cm.getConfig(debug)
@@ -87,6 +89,9 @@ class Config:
                 self.quality_threshold_inc = int(split[1])
             if 'hasOnlineState' in quality:
                 self.quality_has_online_state = quality['hasOnlineState'].lower() == 'True'.lower()
+
+        self.hbase_rest_url = "http://172.16.2.102:8080"
+        self.hbase_jmx_url = "http://172.16.2.102:10102/jmx"
     def get_config(self):
         return self.config
 

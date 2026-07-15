@@ -25,9 +25,11 @@ yum install -y postgresql-devel
 yum install -y python-devel
 pip install  --trusted-host pypi.python.org psycopg2==2.8.6
 pip install --ignore-installe psycopg2==2.8.6
+#1. 安装二进制版本（推荐
+pip install --trusted-host pypi.python.org psycopg2-binary==2.8.6
 
 ##
-pip install  --trusted-host pypi.python.org pandas -i "https://pypi.doubanio.com/simple/"
+pip install  --trusted-host pypi.python.org pandas==0.24.2 -i "https://pypi.doubanio.com/simple/"
 
 pip -v install  --trusted-host pypi.python.org pandas==0.24.2
 

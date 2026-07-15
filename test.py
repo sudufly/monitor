@@ -1,154 +1,83 @@
-# coding:utf-8
-class DynamicMenu:
-    def __init__(self, name):
-        self.name = name
-        self.menu_structure = {}  # 存储菜单结构的字典
-        self.current_path = []    # 当前路径栈，用于记录当前所处的菜单层级
-        self.command_history = [] # 命令历史栈
+import os
+import json
+import requests
 
-    def add_menu_item(self, path, key, item_type, action=None, description=""):
-        current_level = self.menu_structure
-        for p in path:
-            if p not in current_level or not isinstance(current_level[p], dict):
-                current_level[p] = {}
-            current_level = current_level[p]
+def getenv(k, d=None):
+    v = os.environ.get(k)
+    return v if v is not None and v != "" else d
 
-        if item_type == 'action':
-            current_level[key] = ('action', action, description)
-        elif item_type == 'submenu':
-            current_level[key] = ('submenu', {}, description)
+def extract_list(payload, page_size):
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict):
+        for key in ["data", "records", "list", "items", "rows", "result"]:
+            v = payload.get(key)
+            if isinstance(v, list):
+                return v
+        for v in payload.values():
+            if isinstance(v, list):
+                return v
+    return None
 
-    def show_menu(self):
-        print("\n" + "=" * 40)
-        print("Menu: " + '/'.join(self.current_path) or self.name)
-        print("=" * 40)
+def get_access_token(session, token_url, client_id, client_secret, scope):
+    data = {
+        "grant_type": "client_credentials",
+        "client_id": client_id,
+        "client_secret": client_secret
+    }
+    if scope:
+        data["scope"] = scope
+    r = session.post(token_url, data=data, headers={"Accept": "application/json"}, timeout=20)
+    if r.status_code < 200 or r.status_code >= 300:
+        raise RuntimeError(f"token http {r.status_code} {r.text}")
+    j = r.json()
+    token = j.get("access_token")
+    if not token:
+        raise RuntimeError(f"no access_token in response: {j}")
+    return token
 
-        current_level = self.menu_structure
-        for p in self.current_path:
-            if p in current_level and isinstance(current_level[p], dict):
-                current_level = current_level[p]
-            else:
+def main():
+    token_url = getenv("TOKEN_URL", "https://id.dothework.cn/sso/tn-a1f042466b134f2ab3821fc23821757c/ai-c22b961087114db2940007587d47e440/oidc/token")
+    data_base = getenv("DATA_URL_BASE", "https://wedata-tcs-data-service-gateway.dothework.cn/api/v1/QueryAllDevcieData")
+    client_id = getenv("CLIENT_ID")
+    client_secret = getenv("CLIENT_SECRET")
+    scope = getenv("SCOPE", "")
+    page_size = int(getenv("PAGE_SIZE", "1000"))
+    max_pages = int(getenv("MAX_PAGES", "10000"))
+    output_file = getenv("OUTPUT_FILE", "device-data.jsonl")
+
+    if not client_id or not client_secret:
+        raise RuntimeError("set CLIENT_ID and CLIENT_SECRET env vars")
+
+    session = requests.Session()
+    token = get_access_token(session, token_url, client_id, client_secret, scope)
+
+    if os.path.exists(output_file):
+        os.remove(output_file)
+
+    for page in range(1, max_pages + 1):
+        params = {"pageNum": page, "pageSize": page_size}
+        headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
+        r = session.get(data_base, params=params, headers=headers, timeout=30)
+        sc = r.status_code
+        if sc == 401 or sc == 403:
+            raise RuntimeError(f"unauthorized http {sc} {r.text}")
+        if sc < 200 or sc >= 300:
+            break
+        body_text = r.text
+        with open(output_file, "a", encoding="utf-8") as f:
+            f.write(body_text)
+            f.write("\n")
+        try:
+            payload = r.json()
+        except Exception:
+            if len(body_text) < 40:
+                break
+            continue
+        items = extract_list(payload, page_size)
+        if items is not None:
+            if len(items) == 0 or len(items) < page_size:
                 break
 
-        if self.current_path:
-            print("[B] Back to '{}'".format('/'.join(self.current_path[:-1]) or self.name))
-
-        for key, item in current_level.items():
-            if len(item) >= 3:
-                _, _, desc = item[:3]
-            else:
-                desc = "No Description"
-
-            print("[{}] {}".format(key, desc))
-
-        choice = raw_input("\nEnter your choice: ").strip().upper()
-
-        if choice == 'B' and self.current_path:
-            self.return_to_parent()
-        elif choice in current_level:
-            item_type, value, _ = current_level[choice][:3]
-            if item_type == 'action':
-                self.execute_action(choice, value)
-            elif item_type == 'submenu':
-            # 检查是否有加载逻辑，并以字符串形式提供方法名
-                load_method_name = value.get('load')
-                load_method_name()
-                # if load_method_name and hasattr(self, load_method_name):
-                #     getattr(self, load_method_name)()  # 调用加载方法
-                self.enter_submenu(choice)
-        else:
-            print("Invalid choice. Please try again.")
-            self.show_menu()
-
-    def execute_action(self, choice, action):
-        self.command_history.append(choice)
-        action()
-        raw_input("Press Enter to continue...")
-        self.show_menu()
-
-    def enter_submenu(self, choice):
-        self.command_history.append(choice)
-        self.current_path.append(choice)
-        self.show_menu()
-
-    def return_to_parent(self):
-        if self.command_history:
-            print("Returning from last command: [{}]".format(self.command_history.pop()))
-        if self.current_path:
-            self.current_path.pop()
-            self.show_menu()
-
-    def load_apps_for_logs(self):
-        """
-        模拟从接口获取应用列表并动态添加到日志子菜单。
-        """
-        apps = fetch_apps_from_api()
-
-        logs_submenu_key = 'L'
-        if logs_submenu_key in self.menu_structure:
-            del self.menu_structure[logs_submenu_key]
-
-        self.add_menu_item([], logs_submenu_key, 'submenu', None, "Logs")
-
-        logs_submenu = self.menu_structure.setdefault(logs_submenu_key, {})
-        app_list_key = 'A'
-        self.add_menu_item([logs_submenu_key], app_list_key, 'submenu', None, "App List")
-        app_list_submenu = logs_submenu.setdefault(app_list_key, {})[1]
-
-        for idx, (app_id, app_info) in enumerate(apps.items(), start=1):
-            app_key = "A{}".format(idx)
-            app_description = "App ID: {}".format(app_id)
-            self.add_menu_item([logs_submenu_key, app_list_key], app_key, 'submenu', None, app_description)
-            app_submenu = app_list_submenu.setdefault(app_key, {})[1]
-
-            for func_name in app_info.get('functions', []):
-                func_key = func_name.replace(' ', '_').lower()
-                self.add_menu_item([logs_submenu_key, app_list_key, app_key], func_key, 'action',
-                                   lambda x=func_name, y=app_id:  (x, y),
-                                   func_name)
-
-        self.current_path.extend([logs_submenu_key, app_list_key])
-        self.show_menu()
-def fetch_apps_from_api():
-    """
-    模拟从API获取应用列表的函数。
-    实际使用时应替换为真实的API调用。
-    """
-    # 模拟的数据
-    return {
-        'appId_1': {'functions': ['功能1', '功能2']},
-        'appId_2': {'functions': ['功能A', '功能B']}
-    }
-def action_hello():
-    print("Hello, World!")
-
-def action_goodbye():
-    print("Goodbye!")
-
-def exit_program():
-    print("Exiting program...")
-    sys.exit(0)
 if __name__ == "__main__":
-    menu = DynamicMenu("Main Menu")
-
-    # 动态添加主菜单项
-    menu.add_menu_item([], 'H', 'action', action_hello, "Say Hello")
-    menu.add_menu_item([], 'G', 'action', action_goodbye, "Say Goodbye")
-    menu.add_menu_item([], 'X', 'action', exit_program, "Exit Program")
-
-    # 设置日志子菜单的加载逻辑
-    menu.menu_structure['L'] = ('submenu', {'load': menu.load_apps_for_logs}, "Logs")
-
-    # 启动菜单
-    menu.show_menu()
-
-
-
-
-
-
-
-
-
-
-
+    main()

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # 安装
-pip install requests
-pip install configparser
+pip install requests -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+pip install configparser -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 
 ## kafka
 pip install -U kafka-python==2.0.2

@@ -16,7 +16,7 @@ from component.wx_client import WxClient
 from component.yarn_app_monitor import YarnAppMonitor
 from config.config import Config
 
-from qualityTools import Report
+
 
 tz = pytz.timezone('Asia/Shanghai')
 service = "告警监控服务"
