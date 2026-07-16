@@ -87,10 +87,13 @@ class Monitor(object):
             traceback.print_exc()
             self.wx.send(err_markdown(self.project, service, e), True)
     def daily_report(self):
-
-
-        report = Report()
-        report.report()
+        try:
+            from qualityTools import Report
+            report = Report()
+            report.report()
+        except Exception as e:
+            traceback.print_exc()
+            self.wx.send(err_markdown(self.project, service, '日报任务执行失败: {}'.format(e)), True)
     def start(self):
         starttime = self.starttime
         print("监控服务启动成功")
