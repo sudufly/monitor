@@ -50,10 +50,12 @@ sed -i 's/\r$//' x.py
 
 
 ## python 2
+sudo apt install python2 python2.7
+
 https://blog.csdn.net/2401_86454507/article/details/142166670
 
 curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
-
+python2 get-pip.py
 
 
 ## 快速安装
