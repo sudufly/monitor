@@ -29,6 +29,8 @@ class Config:
     quality_threshold_dec = -20
     quality_threshold_inc = 50
     quality_has_online_state = True
+    # 行程离线统计任务监控
+    offline_task_enable = False
 
 
     def __init__(self, debug=False):
@@ -89,6 +91,8 @@ class Config:
                 self.quality_threshold_inc = int(split[1])
             if 'hasOnlineState' in quality:
                 self.quality_has_online_state = quality['hasOnlineState'].lower() == 'True'.lower()
+            if 'batchRouteEnable' in quality:
+                self.offline_task_enable = quality['batchRouteEnable'].lower() == 'True'.lower()
 
         self.hbase_rest_url = "http://172.16.2.102:8080"
         self.hbase_jmx_url = "http://172.16.2.102:10102/jmx"
@@ -154,3 +158,6 @@ class Config:
         return self.quality_threshold_inc
     def get_quality_has_online_state(self):
         return self.quality_has_online_state
+
+    def get_offline_task_enable(self):
+        return self.offline_task_enable

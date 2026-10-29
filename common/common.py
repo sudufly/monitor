@@ -5,6 +5,8 @@ import datetime
 
 import configparser
 
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # import wcwidth
 import warnings
 warnings.filterwarnings('ignore', category=UnicodeWarning)
@@ -16,6 +18,10 @@ def getConfig(debug=False):
 
     # 构建配置文件路径
     config_path = os.path.join(working_dir, 'config.ini')
+    if not os.path.isfile(config_path):
+        config_path = os.path.join(PROJECT_DIR, 'config.ini')
+    if not os.path.isfile(config_path):
+        raise IOError('Config file not found: {}'.format(config_path))
     config = configparser.ConfigParser()
     # print config_path
     config.read(config_path, encoding='utf-8')

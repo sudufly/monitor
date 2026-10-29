@@ -11,6 +11,7 @@ import pytz
 
 from common import common as cm
 from component.kafka_infra_monitor import MonitorKafkaInfra
+from component.offline_task_monitor import OfflineTaskMonitor
 from component.spring_monitor import SpringMonitor
 from component.wx_client import WxClient
 from component.yarn_app_monitor import YarnAppMonitor
@@ -45,6 +46,7 @@ class Monitor(object):
     kafka_monitor = MonitorKafkaInfra()
     yarn_app_monitor = YarnAppMonitor()
     spring_monitor = SpringMonitor()
+    offline_task_monitor = OfflineTaskMonitor()
     starttime = time.time() * 1000
 
     monitor_funcs = []
@@ -94,6 +96,13 @@ class Monitor(object):
         except Exception as e:
             traceback.print_exc()
             self.wx.send(err_markdown(self.project, service, '日报任务执行失败: {}'.format(e)), True)
+        # 行程离线统计任务检测，与质量日报一起在凌晨6点执行，由 [quality] batchRouteEnable 控制
+        if self.config.get_offline_task_enable():
+            try:
+                self.offline_task_monitor.check()
+            except Exception as e:
+                traceback.print_exc()
+                self.wx.send(err_markdown(self.project, service, '行程离线任务检测失败: {}'.format(e)), True)
     def start(self):
         starttime = self.starttime
         print("监控服务启动成功")
